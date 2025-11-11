@@ -244,7 +244,7 @@ tr.ok td {
 
 .runner {
     position: absolute;
-    top: 4px;
+    top: 2px;
     left: 0;
     transform: translateX(-160px);
     height: 50px !important; /* 👈 INCREASED SIZE */
