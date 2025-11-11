@@ -6,20 +6,14 @@
 <title>CTA Wall — Southport + Belmont/Greenview</title>
 <style>
 :root {
---bg: #0d0b1a; /* deep retro night */
---fg: #e6ddff; /* light purple text */
---accent: #9d8cff; /* lilac */
---accent2: #56f1d6; /* aqua */
---card: #17142b;
---good: #7CFC00;
---warn: #ffd95e;
---due: #ff6b6b;
+  --bg: #0d0b1a; --fg: #e6ddff; --accent: #9d8cff; --accent2: #56f1d6;
+  --card: #17142b; --good: #7CFC00; --warn: #ffd95e; --due: #ff6b6b;
 }
 html, body { height: 100%; }
 body {
-margin:0; background: var(--bg); color: var(--fg);
-font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-display:flex; flex-direction:column; gap:16px; padding:24px;
+  margin:0; background: var(--bg); color: var(--fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  display:flex; flex-direction:column; gap:16px; padding:24px;
 }
 header { display:flex; align-items:center; justify-content:space-between; }
 h1 { margin:0; font-size: clamp(20px, 3vw, 32px); letter-spacing:1px; }
@@ -27,12 +21,10 @@ h1 { margin:0; font-size: clamp(20px, 3vw, 32px); letter-spacing:1px; }
 .grid { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
 @media (max-width: 900px){ .grid { grid-template-columns: 1fr; } }
 
-
 .panel { background: var(--card); border:1px solid #2a2744; border-radius:18px; padding:18px; box-shadow: 0 10px 35px rgba(0,0,0,.45); }
 .title { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .title h2 { margin:0; font-size: clamp(16px, 2.4vw, 22px); }
 .badge { font-size:12px; padding:4px 8px; border-radius:999px; background: #251f46; color: var(--accent2); border:1px solid #3a326d; }
-
 
 table { width:100%; border-collapse: collapse; }
 th, td { text-align:left; padding:10px 8px; border-bottom:1px dashed #2d294d; font-size: clamp(14px, 1.8vw, 18px); }
@@ -40,7 +32,6 @@ th { opacity:.8; font-weight:600; }
 tr.due td { color: var(--due); font-weight:700; }
 tr.soon td { color: var(--warn); font-weight:600; }
 tr.ok td { color: var(--fg); }
-
 
 /* Retro banner + pixel trains/buses */
 .marquee { position: relative; overflow:hidden; height: 52px; border-radius:12px; background: linear-gradient(90deg, #201c3b, #1b1733); border:1px solid #322b5c; display:flex; align-items:center; padding:0 12px; margin-bottom:12px; }
@@ -51,36 +42,166 @@ tr.ok td { color: var(--fg); }
 .vehicle.roll { animation: roll 4s linear forwards; }
 @keyframes roll { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 180px)); } }
 
-
 .legend { display:flex; gap:10px; font-size:12px; opacity:.8; margin-top:8px; }
 .dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
 </style>
 </head>
 <body>
 <header>
-<h1>🚏 CTA Wall — Southport (Brown) + Belmont/Greenview (#77)</h1>
-<div class="timestamp" id="timestamp">Loading…</div>
+  <h1>🚏 CTA Wall — Southport (Brown) + Belmont/Greenview (#77)</h1>
+  <div class="timestamp" id="timestamp">Loading…</div>
 </header>
-
 
 <!-- Brown Line Panels -->
 <section class="grid">
-<div class="panel" id="train-loop">
-<div class="marquee"><span class="station-label">Brown @ Southport → Loop</span><div class="vehicle train" id="trainLoopAnim">BROWN</div></div>
-<div class="title"><h2>Inbound to Loop</h2><span class="badge">mapid 40360</span></div>
-<table>
-<thead><tr><th>ETA</th><th>Run</th><th>Dest</th></tr></thead>
-<tbody id="trainLoopBody"><tr><td colspan="3">Loading…</td></tr></tbody>
-</table>
-<div class="legend">
-<span><span class="dot" style="background:var(--due)"></span>DUE / ≤1m</span>
-<span><span class="dot" style="background:var(--warn)"></span>≤5m</span>
-</div>
-</div>
+  <div class="panel" id="train-loop">
+    <div class="marquee"><span class="station-label">Brown @ Southport → Loop</span><div class="vehicle train" id="trainLoopAnim">BROWN</div></div>
+    <div class="title"><h2>Inbound to Loop</h2><span class="badge">mapid 40360</span></div>
+    <table>
+      <thead><tr><th>ETA</th><th>Run</th><th>Dest</th></tr></thead>
+      <tbody id="trainLoopBody"><tr><td colspan="3">Loading…</td></tr></tbody>
+    </table>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--due)"></span>DUE / ≤1m</span>
+      <span><span class="dot" style="background:var(--warn)"></span>≤5m</span>
+    </div>
+  </div>
 
+  <div class="panel" id="train-kimball">
+    <div class="marquee"><span class="station-label">Brown @ Southport → Kimball</span><div class="vehicle train" id="trainKimballAnim">BROWN</div></div>
+    <div class="title"><h2>Outbound to Kimball</h2><span class="badge">mapid 40360</span></div>
+    <table>
+      <thead><tr><th>ETA</th><th>Run</th><th>Dest</th></tr></thead>
+      <tbody id="trainKimballBody"><tr><td colspan="3">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</section>
 
-<div class="panel" id="train-kimball">
-<div class="marquee"><span class="station-label">Brown @ Southport → Kimball</span><div class="vehicle train" id="trainKimballAnim">BROWN</div></div>
-<div class="title"><h2>Outbound to Kimball</h2><span class="badge">mapid 40360</span></div>
-<table>
+<!-- Bus Panels -->
+<section class="grid">
+  <div class="panel" id="bus-east">
+    <div class="marquee"><span class="station-label">#77 Belmont @ Greenview → Diversey/Lake Shore</span><div class="vehicle bus" id="busEastAnim">BUS</div></div>
+    <div class="title"><h2>Eastbound</h2><span class="badge">stop 17833</span></div>
+    <table>
+      <thead><tr><th>ETA</th><th>Vehicle</th><th>Headed to</th></tr></thead>
+      <tbody id="busEastBody"><tr><td colspan="3">Loading…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel" id="bus-west">
+    <div class="marquee"><span class="station-label">#77 Belmont @ Greenview → Cumberland</span><div class="vehicle bus" id="busWestAnim">BUS</div></div>
+    <div class="title"><h2>Westbound</h2><span class="badge">stop 14920</span></div>
+    <table>
+      <thead><tr><th>ETA</th><th>Vehicle</th><th>Headed to</th></tr></thead>
+      <tbody id="busWestBody"><tr><td colspan="3">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+const fmtTime = (d)=> new Date(d).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+const classify = (mins)=> mins <= 1 ? 'due' : (mins <= 5 ? 'soon' : 'ok');
+const setStamp = ()=> document.getElementById('timestamp').textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+async function fetchJSON(url){
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+function animateIfDue(selector, isDue){
+  const el = document.querySelector(selector);
+  if(!el) return;
+  el.classList.remove('roll');
+  if(isDue){ void el.offsetWidth; el.classList.add('roll'); }
+}
+
+async function loadTrains(){
+  try{
+    const data = await fetchJSON('/api/train?mapid=40360'); // Southport parent station (https via Edge proxy)
+    const loop = data.filter(x => /Loop/i.test(x.stpDe || ''));
+    const kimball = data.filter(x => /Kimball/i.test(x.stpDe || ''));
+
+    const render = (rows, tbodySel, animSel)=>{
+      const tbody = document.querySelector(tbodySel);
+      if(!tbody) return;
+      if(!rows.length){ tbody.innerHTML = '<tr><td colspan="3">No predictions</td></tr>'; animateIfDue(animSel,false); return; }
+      let anyDue = false;
+      tbody.innerHTML = rows.slice(0,5).map(x=>{
+        const mins = Math.max(0, Math.round((new Date(x.arrT) - new Date())/60000));
+        if(mins <= 1) anyDue = true;
+        const cls = classify(mins);
+        const eta = mins<=1 ? 'DUE' : mins + ' min';
+        return `<tr class="${cls}"><td>${eta}</td><td>${x.rn || ''}</td><td>${x.destNm || ''}</td></tr>`;
+      }).join('');
+      animateIfDue(animSel, anyDue);
+    };
+    render(loop, '#trainLoopBody', '#trainLoopAnim');
+    render(kimball, '#trainKimballBody', '#trainKimballAnim');
+  }catch(err){
+    const msg = 'Train error: ' + (err?.message || err);
+    ['#trainLoopBody','#trainKimballBody'].forEach(id=>{
+      const el=document.querySelector(id); if(el) el.innerHTML = `<tr><td colspan="3">${msg}</td></tr>`;
+    });
+  }
+}
+
+async function loadBuses(){
+  try{
+    const [eastResp, westResp] = await Promise.all([
+      fetchJSON('/api/bus?stpid=17833&rt=77'),
+      fetchJSON('/api/bus?stpid=14920&rt=77')
+    ]);
+
+    const render = (resp, tbodySel, animSel) => {
+      const tbody = document.querySelector(tbodySel);
+      if (!tbody) return;
+
+      // handle both shapes: {rows, error} or plain array []
+      const apiError = resp?.error;
+      const rows = Array.isArray(resp) ? resp : (resp?.rows || []);
+
+      if (apiError) {
+        tbody.innerHTML = `<tr><td colspan="3">API error: ${apiError}</td></tr>`;
+        animateIfDue(animSel, false);
+        return;
+      }
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="3">No predictions</td></tr>';
+        animateIfDue(animSel, false);
+        return;
+      }
+
+      let anyDue = false;
+      tbody.innerHTML = rows.slice(0,5).map(x=>{
+        const mins = (x.prdctdn === 'DUE') ? 0 : parseInt(x.prdctdn, 10);
+        if (Number.isFinite(mins) && mins <= 1) anyDue = true;
+        const cls = Number.isFinite(mins) ? classify(mins) : 'ok';
+        const eta = !Number.isFinite(mins) ? '—' : (mins<=1 ? 'DUE' : `${mins} min`);
+        return `<tr class="${cls}"><td>${eta}</td><td>${x.vid || ''}</td><td>${x.des || ''}</td></tr>`;
+      }).join('');
+
+      animateIfDue(animSel, anyDue);
+    };
+
+    render(eastResp, '#busEastBody', '#busEastAnim');
+    render(westResp, '#busWestBody', '#busWestAnim');
+  }catch(err){
+    const msg = 'Bus error: ' + (err?.message || err);
+    ['#busEastBody','#busWestBody'].forEach(id=>{
+      const el=document.querySelector(id); if(el) el.innerHTML = `<tr><td colspan="3">${msg}</td></tr>`;
+    });
+  }
+}
+
+async function refresh(){
+  await Promise.allSettled([ loadTrains(), loadBuses() ]);
+  setStamp();
+}
+
+refresh();
+setInterval(refresh, 60_000);
+</script>
+</body>
 </html>
