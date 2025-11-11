@@ -12,7 +12,7 @@ if (!key) return new Response(JSON.stringify({ error: 'Missing CTA_TRAIN_KEY' })
 
 
 // Ask CTA for JSON directly via outputType=JSON (documented in Train Tracker API)
-const url = `http://lapi.transitchicago.com/api/1.0/ttarrivals.aspx?key=${key}&mapid=${mapid}&outputType=JSON`;
+const url = `https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx?key=${key}&mapid=${mapid}&outputType=JSON`;
 const r = await fetch(url);
 if (!r.ok) return new Response(JSON.stringify({ error: 'CTA Train API error' }), { status: 502 });
 const payload = await r.json();
