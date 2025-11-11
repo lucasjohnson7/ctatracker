@@ -1,4 +1,4 @@
-// Vercel serverless function — CTA Bus Tracker v3 → JSON
+// Vercel Edge Function — CTA Bus Tracker v3 → JSON
 // Requires env: CTA_BUS_KEY
 export const config = { runtime: 'edge' };
 
