@@ -4,8 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="style.css" />
-
-<title>CTA Wall — Southport + Belmont/Greenview</title>
+<title>CTA Wall — Southport (Brown) + Belmont/Greenview</title>
 </head>
 <body>
 <header>
@@ -20,6 +19,12 @@
       <span class="station-label">Brown @ Southport → Loop</span>
       <div class="vehicle train" id="trainLoopAnim">BROWN</div>
     </div>
+
+    <!-- Arrival badge (shows while DUE, slides away when cleared) -->
+    <div class="arrival-banner" id="trainLoopBanner">
+      <div class="vehicle train">TRAIN</div>
+    </div>
+
     <div class="title">
       <h2>Inbound to Loop</h2>
       <span class="badge">mapid 40360</span>
@@ -39,6 +44,12 @@
       <span class="station-label">Brown @ Southport → Kimball</span>
       <div class="vehicle train" id="trainKimballAnim">BROWN</div>
     </div>
+
+    <!-- Arrival badge -->
+    <div class="arrival-banner" id="trainKimballBanner">
+      <div class="vehicle train">TRAIN</div>
+    </div>
+
     <div class="title">
       <h2>Outbound to Kimball</h2>
       <span class="badge">mapid 40360</span>
@@ -61,6 +72,12 @@
       <span class="station-label">#77 Belmont @ Greenview → Diversey/Lake Shore</span>
       <div class="vehicle bus" id="busEastAnim">BUS</div>
     </div>
+
+    <!-- Arrival badge -->
+    <div class="arrival-banner" id="busEastBanner">
+      <div class="vehicle bus">BUS</div>
+    </div>
+
     <div class="title">
       <h2>Eastbound</h2>
       <span class="badge">stop 17833</span>
@@ -80,6 +97,12 @@
       <span class="station-label">#77 Belmont @ Greenview → Cumberland</span>
       <div class="vehicle bus" id="busWestAnim">BUS</div>
     </div>
+
+    <!-- Arrival badge -->
+    <div class="arrival-banner" id="busWestBanner">
+      <div class="vehicle bus">BUS</div>
+    </div>
+
     <div class="title">
       <h2>Westbound</h2>
       <span class="badge">stop 14920</span>
@@ -106,11 +129,22 @@ async function fetchJSON(url){
   return r.json();
 }
 
-function animateIfDue(selector, isDue){
-  const el = document.querySelector(selector);
-  if(!el) return;
-  el.classList.remove('roll');
-  if(isDue){ void el.offsetWidth; el.classList.add('roll'); }
+/* Show a centered badge while DUE; slide away when cleared */
+function updateBanner(bannerSelector, shouldShow) {
+  const el = document.querySelector(bannerSelector);
+  if (!el) return;
+
+  if (shouldShow) {
+    el.classList.remove('leaving');
+    el.classList.add('show');
+    return;
+  }
+
+  if (el.classList.contains('show')) {
+    el.classList.remove('show');
+    el.classList.add('leaving');
+    setTimeout(() => el.classList.remove('leaving'), 700);
+  }
 }
 
 async function loadTrains(){
@@ -119,10 +153,11 @@ async function loadTrains(){
     const loop = data.filter(x => /Loop/i.test(x.stpDe || ''));
     const kimball = data.filter(x => /Kimball/i.test(x.stpDe || ''));
 
-    const render = (rows, tbodySel, animSel)=>{
+    const render = (rows, tbodySel, bannerSel)=>{
       const tbody = document.querySelector(tbodySel);
       if(!tbody) return;
-      if(!rows.length){ tbody.innerHTML = '<tr><td colspan="3">No predictions</td></tr>'; animateIfDue(animSel,false); return; }
+      if(!rows.length){ tbody.innerHTML = '<tr><td colspan="3">No predictions</td></tr>'; updateBanner(bannerSel,false); return; }
+
       let anyDue = false;
       tbody.innerHTML = rows.slice(0,5).map(x=>{
         const mins = Math.max(0, Math.round((new Date(x.arrT) - new Date())/60000));
@@ -131,15 +166,19 @@ async function loadTrains(){
         const eta = mins<=1 ? 'DUE' : mins + ' min';
         return `<tr class="${cls}"><td>${eta}</td><td>${x.rn || ''}</td><td>${x.destNm || ''}</td></tr>`;
       }).join('');
-      animateIfDue(animSel, anyDue);
+
+      updateBanner(bannerSel, anyDue);
     };
-    render(loop, '#trainLoopBody', '#trainLoopAnim');
-    render(kimball, '#trainKimballBody', '#trainKimballAnim');
+
+    render(loop,    '#trainLoopBody',    '#trainLoopBanner');
+    render(kimball, '#trainKimballBody', '#trainKimballBanner');
   }catch(err){
     const msg = 'Train error: ' + (err?.message || err);
     ['#trainLoopBody','#trainKimballBody'].forEach(id=>{
       const el=document.querySelector(id); if(el) el.innerHTML = `<tr><td colspan="3">${msg}</td></tr>`;
     });
+    updateBanner('#trainLoopBanner', false);
+    updateBanner('#trainKimballBanner', false);
   }
 }
 
@@ -150,7 +189,7 @@ async function loadBuses(){
       fetchJSON('/api/bus?stpid=14920&rt=77')
     ]);
 
-    const render = (resp, tbodySel, animSel) => {
+    const render = (resp, tbodySel, bannerSel) => {
       const tbody = document.querySelector(tbodySel);
       if (!tbody) return;
 
@@ -159,13 +198,13 @@ async function loadBuses(){
 
       if (apiError) {
         tbody.innerHTML = `<tr><td colspan="3">API error: ${apiError}</td></tr>`;
-        animateIfDue(animSel, false);
+        updateBanner(bannerSel, false);
         return;
       }
 
       if (!rows.length) {
         tbody.innerHTML = '<tr><td colspan="3">No predictions</td></tr>';
-        animateIfDue(animSel, false);
+        updateBanner(bannerSel, false);
         return;
       }
 
@@ -178,16 +217,18 @@ async function loadBuses(){
         return `<tr class="${cls}"><td>${eta}</td><td>${x.vid || ''}</td><td>${x.des || ''}</td></tr>`;
       }).join('');
 
-      animateIfDue(animSel, anyDue);
+      updateBanner(bannerSel, anyDue);
     };
 
-    render(eastResp, '#busEastBody', '#busEastAnim');
-    render(westResp, '#busWestBody', '#busWestAnim');
+    render(eastResp, '#busEastBody', '#busEastBanner');
+    render(westResp, '#busWestBody', '#busWestBanner');
   }catch(err){
     const msg = 'Bus error: ' + (err?.message || err);
     ['#busEastBody','#busWestBody'].forEach(id=>{
       const el=document.querySelector(id); if(el) el.innerHTML = `<tr><td colspan="3">${msg}</td></tr>`;
     });
+    updateBanner('#busEastBanner', false);
+    updateBanner('#busWestBanner', false);
   }
 }
 

@@ -184,11 +184,7 @@ tr.ok td {
 
 .vehicle.bus {
   background:#e7fff9;
-}
-
-.vehicle.roll {
-  animation:roll 4s linear forwards;
-}
+}}
 
 @keyframes roll {
   from { transform:translateX(0); }
@@ -211,3 +207,37 @@ tr.ok td {
   display:inline-block;
   margin-right:6px;
 }
+
+/* Arrival badge area above the tables */
+.arrival-banner {
+  position: relative;
+  height: 56px;           /* space reserved for the vehicle block */
+  margin: 6px 0 8px;
+  overflow: visible;
+}
+
+/* Start hidden above, centered horizontally */
+.arrival-banner .vehicle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -70px); /* hidden above */
+  opacity: 0;
+  transition: transform .45s ease, opacity .45s ease;
+}
+
+/* When due: show and park in the center */
+.arrival-banner.show .vehicle {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+/* When cleared: slide out to the right and fade */
+.arrival-banner.leaving .vehicle {
+  transform: translate(150%, 0);
+  opacity: 0;
+  transition: transform .6s ease-in, opacity .6s ease-in;
+}
+
+/* (Optional) stop the old rolling animation on marquees for clarity */
+.vehicle.roll { animation: none; }
