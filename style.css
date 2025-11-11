@@ -184,7 +184,7 @@ tr.ok td {
 
 .vehicle.bus {
   background:#e7fff9;
-}}
+}
 
 @keyframes roll {
   from { transform:translateX(0); }
