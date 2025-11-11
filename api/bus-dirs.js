@@ -32,8 +32,8 @@ export default async function handler(req) {
       });
     }
 
-    const apiErr = json?.bustime_response?.error?.[0]?.msg ?? null;
-    const directions = json?.bustime_response?.directions ?? [];
+    const apiErr = json?.bustime-response?.error?.[0]?.msg ?? null;
+    const directions = json?.bustime-response?.directions ?? [];
     return new Response(JSON.stringify({ directions, error: apiErr }), {
       headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
     });
