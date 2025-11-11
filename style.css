@@ -1,0 +1,213 @@
+/* ================================
+   Retro CTA Wall — External Stylesheet
+   ================================ */
+
+/*  Root Variables  */
+:root {
+  --bg:#f5f1e8; 
+  --fg:#1f1a12;
+
+  --brown:#62361B;
+  --brown-ink:#fff1e6;
+
+  --card:#ffffff;
+  --line:#e5dccb;
+
+  --good:#198754;
+  --warn:#c79000;
+  --due:#c43c3c;
+}
+
+/*  Base Layout  */
+html, body {
+  height:100%;
+}
+
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  padding:22px;
+}
+
+/*  Header  */
+header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+h1 {
+  margin:0;
+  font-size:clamp(22px,3vw,32px);
+  letter-spacing:.4px;
+}
+
+.timestamp {
+  opacity:.9;
+  font-size:14px;
+}
+
+/*  Grid (Portrait-first)  */
+.grid {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:18px;
+}
+
+@media (min-width:1100px) and (orientation:landscape){
+  .grid {
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+/*  Panels  */
+.panel {
+  background:var(--card);
+  border:2px solid var(--line);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 10px 24px rgba(30,23,11,.07);
+}
+
+/*  Brown Line Panel Skin  */
+.panel.brown .marquee {
+  background:linear-gradient(90deg,#6d3e22,#5a3118);
+  border-color:#4c2a14;
+}
+
+.panel.brown .station-label {
+  color:var(--brown-ink);
+}
+
+.panel.brown .vehicle.train {
+  background:#ffead2;
+  color:#3a2617;
+  border-color:#2a160a;
+  box-shadow:inset 0 0 0 2px #cc8e61;
+}
+
+/*  Titles, Badges  */
+.title {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.title h2 {
+  margin:0;
+  font-size:clamp(16px,2.4vw,22px);
+}
+
+.badge {
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#efe5d5;
+  color:#5a4a37;
+  border:1px solid #dbcdb6;
+}
+
+/*  Tables  */
+table {
+  width:100%;
+  border-collapse:collapse;
+}
+
+th, td {
+  text-align:left;
+  padding:10px 8px;
+  border-bottom:1px dashed var(--line);
+  font-size:clamp(14px,1.9vw,18px);
+}
+
+th {
+  opacity:.9;
+  font-weight:700;
+}
+
+tr.due td {
+  color:var(--due);
+  font-weight:800;
+}
+
+tr.soon td {
+  color:var(--warn);
+  font-weight:700;
+}
+
+tr.ok td {
+  color:var(--fg);
+}
+
+/*  Marquee + Animated Vehicle  */
+.marquee {
+  position:relative;
+  overflow:hidden;
+  height:52px;
+  border-radius:12px;
+  background:linear-gradient(90deg,#f1e7d7,#eaddc9);
+  border:2px solid var(--line);
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  margin-bottom:12px;
+}
+
+.station-label {
+  font-weight:900;
+  letter-spacing:.6px;
+  color:#2c2218;
+  text-transform:uppercase;
+}
+
+.vehicle {
+  position:absolute;
+  top:6px;
+  left:-140px;
+  width:120px;
+  height:40px;
+  border-radius:6px;
+  background:#f6efe3;
+  border:2px solid #000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  color:#1a1333;
+}
+
+.vehicle.bus {
+  background:#e7fff9;
+}
+
+.vehicle.roll {
+  animation:roll 4s linear forwards;
+}
+
+@keyframes roll {
+  from { transform:translateX(0); }
+  to { transform:translateX(calc(100vw + 180px)); }
+}
+
+/*  Legend  */
+.legend {
+  display:flex;
+  gap:10px;
+  font-size:12px;
+  opacity:.9;
+  margin-top:8px;
+}
+
+.dot {
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  display:inline-block;
+  margin-right:6px;
+}

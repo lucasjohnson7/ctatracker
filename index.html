@@ -3,48 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="styles.css" />
+
 <title>CTA Wall — Southport + Belmont/Greenview</title>
-<style>
-:root {
-  --bg: #0d0b1a; --fg: #e6ddff; --accent: #9d8cff; --accent2: #56f1d6;
-  --card: #17142b; --good: #7CFC00; --warn: #ffd95e; --due: #ff6b6b;
-}
-html, body { height: 100%; }
-body {
-  margin:0; background: var(--bg); color: var(--fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  display:flex; flex-direction:column; gap:16px; padding:24px;
-}
-header { display:flex; align-items:center; justify-content:space-between; }
-h1 { margin:0; font-size: clamp(20px, 3vw, 32px); letter-spacing:1px; }
-.timestamp { opacity:.7; font-size:14px; }
-.grid { display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
-@media (max-width: 900px){ .grid { grid-template-columns: 1fr; } }
-
-.panel { background: var(--card); border:1px solid #2a2744; border-radius:18px; padding:18px; box-shadow: 0 10px 35px rgba(0,0,0,.45); }
-.title { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.title h2 { margin:0; font-size: clamp(16px, 2.4vw, 22px); }
-.badge { font-size:12px; padding:4px 8px; border-radius:999px; background: #251f46; color: var(--accent2); border:1px solid #3a326d; }
-
-table { width:100%; border-collapse: collapse; }
-th, td { text-align:left; padding:10px 8px; border-bottom:1px dashed #2d294d; font-size: clamp(14px, 1.8vw, 18px); }
-th { opacity:.8; font-weight:600; }
-tr.due td { color: var(--due); font-weight:700; }
-tr.soon td { color: var(--warn); font-weight:600; }
-tr.ok td { color: var(--fg); }
-
-/* Retro banner + pixel trains/buses */
-.marquee { position: relative; overflow:hidden; height: 52px; border-radius:12px; background: linear-gradient(90deg, #201c3b, #1b1733); border:1px solid #322b5c; display:flex; align-items:center; padding:0 12px; margin-bottom:12px; }
-.station-label { font-weight:700; letter-spacing: .6px; color:#bfb5ff; }
-.vehicle { position:absolute; top:6px; left:-140px; width:120px; height:40px; border-radius:6px; background:#e6ddff; border:2px solid #000; box-shadow: inset 0 0 0 2px #6e5aff; display:flex; align-items:center; justify-content:center; font-weight:800; color:#1a1333; }
-.vehicle.train { background:#cdbbff; }
-.vehicle.bus { background:#c7fff3; }
-.vehicle.roll { animation: roll 4s linear forwards; }
-@keyframes roll { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 180px)); } }
-
-.legend { display:flex; gap:10px; font-size:12px; opacity:.8; margin-top:8px; }
-.dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
-</style>
 </head>
 <body>
 <header>
@@ -54,22 +15,34 @@ tr.ok td { color: var(--fg); }
 
 <!-- Brown Line Panels -->
 <section class="grid">
-  <div class="panel" id="train-loop">
-    <div class="marquee"><span class="station-label">Brown @ Southport → Loop</span><div class="vehicle train" id="trainLoopAnim">BROWN</div></div>
-    <div class="title"><h2>Inbound to Loop</h2><span class="badge">mapid 40360</span></div>
+  <div class="panel brown" id="train-loop">
+    <div class="marquee">
+      <span class="station-label">Brown @ Southport → Loop</span>
+      <div class="vehicle train" id="trainLoopAnim">BROWN</div>
+    </div>
+    <div class="title">
+      <h2>Inbound to Loop</h2>
+      <span class="badge">mapid 40360</span>
+    </div>
     <table>
       <thead><tr><th>ETA</th><th>Run</th><th>Dest</th></tr></thead>
       <tbody id="trainLoopBody"><tr><td colspan="3">Loading…</td></tr></tbody>
     </table>
     <div class="legend">
-      <span><span class="dot" style="background:var(--due)"></span>DUE / ≤1m</span>
-      <span><span class="dot" style="background:var(--warn)"></span>≤5m</span>
+      <span><span class="dot"></span>DUE / ≤1m</span>
+      <span><span class="dot"></span>≤5m</span>
     </div>
   </div>
 
-  <div class="panel" id="train-kimball">
-    <div class="marquee"><span class="station-label">Brown @ Southport → Kimball</span><div class="vehicle train" id="trainKimballAnim">BROWN</div></div>
-    <div class="title"><h2>Outbound to Kimball</h2><span class="badge">mapid 40360</span></div>
+  <div class="panel brown" id="train-kimball">
+    <div class="marquee">
+      <span class="station-label">Brown @ Southport → Kimball</span>
+      <div class="vehicle train" id="trainKimballAnim">BROWN</div>
+    </div>
+    <div class="title">
+      <h2>Outbound to Kimball</h2>
+      <span class="badge">mapid 40360</span>
+    </div>
     <table>
       <thead><tr><th>ETA</th><th>Run</th><th>Dest</th></tr></thead>
       <tbody id="trainKimballBody"><tr><td colspan="3">Loading…</td></tr></tbody>
@@ -80,8 +53,14 @@ tr.ok td { color: var(--fg); }
 <!-- Bus Panels -->
 <section class="grid">
   <div class="panel" id="bus-east">
-    <div class="marquee"><span class="station-label">#77 Belmont @ Greenview → Diversey/Lake Shore</span><div class="vehicle bus" id="busEastAnim">BUS</div></div>
-    <div class="title"><h2>Eastbound</h2><span class="badge">stop 17833</span></div>
+    <div class="marquee">
+      <span class="station-label">#77 Belmont @ Greenview → Diversey/Lake Shore</span>
+      <div class="vehicle bus" id="busEastAnim">BUS</div>
+    </div>
+    <div class="title">
+      <h2>Eastbound</h2>
+      <span class="badge">stop 17833</span>
+    </div>
     <table>
       <thead><tr><th>ETA</th><th>Vehicle</th><th>Headed to</th></tr></thead>
       <tbody id="busEastBody"><tr><td colspan="3">Loading…</td></tr></tbody>
@@ -89,8 +68,14 @@ tr.ok td { color: var(--fg); }
   </div>
 
   <div class="panel" id="bus-west">
-    <div class="marquee"><span class="station-label">#77 Belmont @ Greenview → Cumberland</span><div class="vehicle bus" id="busWestAnim">BUS</div></div>
-    <div class="title"><h2>Westbound</h2><span class="badge">stop 14920</span></div>
+    <div class="marquee">
+      <span class="station-label">#77 Belmont @ Greenview → Cumberland</span>
+      <div class="vehicle bus" id="busWestAnim">BUS</div>
+    </div>
+    <div class="title">
+      <h2>Westbound</h2>
+      <span class="badge">stop 14920</span>
+    </div>
     <table>
       <thead><tr><th>ETA</th><th>Vehicle</th><th>Headed to</th></tr></thead>
       <tbody id="busWestBody"><tr><td colspan="3">Loading…</td></tr></tbody>
@@ -118,7 +103,7 @@ function animateIfDue(selector, isDue){
 
 async function loadTrains(){
   try{
-    const data = await fetchJSON('/api/train?mapid=40360'); // Southport parent station (https via Edge proxy)
+    const data = await fetchJSON('/api/train?mapid=40360'); // Southport parent station
     const loop = data.filter(x => /Loop/i.test(x.stpDe || ''));
     const kimball = data.filter(x => /Kimball/i.test(x.stpDe || ''));
 
@@ -157,7 +142,6 @@ async function loadBuses(){
       const tbody = document.querySelector(tbodySel);
       if (!tbody) return;
 
-      // handle both shapes: {rows, error} or plain array []
       const apiError = resp?.error;
       const rows = Array.isArray(resp) ? resp : (resp?.rows || []);
 
