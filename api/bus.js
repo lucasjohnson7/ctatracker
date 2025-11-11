@@ -1,6 +1,6 @@
 // api/bus.js
 // Vercel Edge Function — CTA Bus Tracker v3 → JSON
-export const runtime = 'edge'; // equivalent to: export const config = { runtime: 'edge' };
+export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
   try {
