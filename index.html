@@ -5,6 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="style.css" />
 <title>CTA Wall — Southport (Brown) + Belmont/Greenview</title>
+
+<!-- Minimal styles for the sliding blocks over the colored marquee tiles -->
+<style>
+  /* Make sure marquee can position children */
+  .marquee { position: relative; overflow: hidden; }
+
+  /* The sliding “block” that runs over the marquee when DUE */
+  .runner {
+    position: absolute;
+    top: 6px;
+    right: -140px;                 /* start just off the right edge */
+    width: 120px;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    letter-spacing: .5px;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.25), 0 6px 18px rgba(0,0,0,.25);
+    color: #1a1333;
+    text-shadow: 0 1px 0 rgba(255,255,255,.25);
+    opacity: .98;
+    pointer-events: none;
+  }
+  .runner.train { background: #cdbbff; } /* lilac “train” block */
+  .runner.bus   { background: #c7fff3; } /* aqua “bus” block  */
+
+  /* Animate from right → left across the marquee area */
+  .runner.roll { animation: slide-left 4s linear infinite; }
+  @keyframes slide-left {
+    from { transform: translateX(0); }
+    to   { transform: translateX(calc(-100vw - 220px)); }
+  }
+</style>
 </head>
 <body>
 <header>
@@ -15,18 +51,11 @@
 <!-- Brown Line Panels -->
 <section class="grid">
   <div class="panel brown" id="train-loop">
-
-      <!-- Arrival badge (shows while DUE, slides away when cleared) -->
-    <div class="arrival-banner" id="trainLoopBanner">
-      <div class="vehicle train">TRAIN</div>
-    </div>
-
     <div class="marquee">
       <span class="station-label">Brown @ Southport → Loop</span>
-      <div class="vehicle train" id="trainLoopAnim">BROWN</div>
+      <!-- sliding block lives ON the marquee -->
+      <div class="runner train" id="trainLoopRun">TRAIN</div>
     </div>
-
-  
 
     <div class="title">
       <h2>Inbound to Loop</h2>
@@ -43,15 +72,9 @@
   </div>
 
   <div class="panel brown" id="train-kimball">
-
-<!-- Arrival badge -->
-    <div class="arrival-banner" id="trainKimballBanner">
-      <div class="vehicle train">TRAIN</div>
-    </div>
-
     <div class="marquee">
       <span class="station-label">Brown @ Southport → Kimball</span>
-      <div class="vehicle train" id="trainKimballAnim">BROWN</div>
+      <div class="runner train" id="trainKimballRun">TRAIN</div>
     </div>
 
     <div class="title">
@@ -72,15 +95,9 @@
 <!-- Bus Panels -->
 <section class="grid">
   <div class="panel" id="bus-east">
-
- <!-- Arrival badge -->
-    <div class="arrival-banner" id="busEastBanner">
-      <div class="vehicle bus">BUS</div>
-    </div>
-
     <div class="marquee">
       <span class="station-label">#77 Belmont @ Greenview → Diversey/Lake Shore</span>
-      <div class="vehicle bus" id="busEastAnim">BUS</div>
+      <div class="runner bus" id="busEastRun">BUS</div>
     </div>
 
     <div class="title">
@@ -98,15 +115,9 @@
   </div>
 
   <div class="panel" id="bus-west">
-
-    <!-- Arrival badge -->
-    <div class="arrival-banner" id="busWestBanner">
-      <div class="vehicle bus">BUS</div>
-    </div>
-
     <div class="marquee">
       <span class="station-label">#77 Belmont @ Greenview → Cumberland</span>
-      <div class="vehicle bus" id="busWestAnim">BUS</div>
+      <div class="runner bus" id="busWestRun">BUS</div>
     </div>
 
     <div class="title">
@@ -125,66 +136,66 @@
 </section>
 
 <script>
-const fmtTime = (d)=> new Date(d).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 const classify = (mins)=> mins <= 1 ? 'due' : (mins <= 5 ? 'soon' : 'ok');
-const setStamp = ()=> document.getElementById('timestamp').textContent = 'Updated ' + new Date().toLocaleTimeString();
+const setStamp = ()=> document.getElementById('timestamp').textContent =
+  'Updated ' + new Date().toLocaleTimeString();
+
+/* Toggle / retrigger the sliding animation when DUE */
+function animateIfDue(selector, isDue){
+  const el = document.querySelector(selector);
+  if(!el) return;
+  el.classList.remove('roll');
+  if(isDue){
+    // reflow to restart the keyframe
+    void el.offsetWidth;
+    el.classList.add('roll');
+  }
+}
 
 async function fetchJSON(url){
-  const r = await fetch(url);
+  const r = await fetch(url, { cache: 'no-store' });
   if(!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
 
-/* Show a centered badge while DUE; slide away when cleared */
-function updateBanner(bannerSelector, shouldShow) {
-  const el = document.querySelector(bannerSelector);
-  if (!el) return;
-
-  if (shouldShow) {
-    el.classList.remove('leaving');
-    el.classList.add('show');
-    return;
-  }
-
-  if (el.classList.contains('show')) {
-    el.classList.remove('show');
-    el.classList.add('leaving');
-    setTimeout(() => el.classList.remove('leaving'), 700);
-  }
-}
-
 async function loadTrains(){
   try{
-    const data = await fetchJSON('/api/train?mapid=40360'); // Southport parent station
+    const data = await fetchJSON('/api/train?mapid=40360'); // Southport
     const loop = data.filter(x => /Loop/i.test(x.stpDe || ''));
     const kimball = data.filter(x => /Kimball/i.test(x.stpDe || ''));
 
-    const render = (rows, tbodySel, bannerSel)=>{
+    const render = (rows, tbodySel, runnerSel)=>{
       const tbody = document.querySelector(tbodySel);
       if(!tbody) return;
-      if(!rows.length){ tbody.innerHTML = '<tr><td colspan="3">No predictions</td></tr>'; updateBanner(bannerSel,false); return; }
+
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="3">No predictions</td></tr>';
+        animateIfDue(runnerSel, false);
+        return;
+      }
 
       let anyDue = false;
       tbody.innerHTML = rows.slice(0,5).map(x=>{
         const mins = Math.max(0, Math.round((new Date(x.arrT) - new Date())/60000));
         if(mins <= 1) anyDue = true;
         const cls = classify(mins);
-        const eta = mins<=1 ? 'DUE' : mins + ' min';
+        const eta = mins<=1 ? 'DUE' : `${mins} min`;
         return `<tr class="${cls}"><td>${eta}</td><td>${x.rn || ''}</td><td>${x.destNm || ''}</td></tr>`;
       }).join('');
 
-      updateBanner(bannerSel, anyDue);
+      animateIfDue(runnerSel, anyDue);
     };
 
-    render(loop,    '#trainLoopBody',    '#trainLoopBanner');
-    render(kimball, '#trainKimballBody', '#trainKimballBanner');
+    render(loop,    '#trainLoopBody',    '#trainLoopRun');
+    render(kimball, '#trainKimballBody', '#trainKimballRun');
   }catch(err){
     const msg = 'Train error: ' + (err?.message || err);
     ['#trainLoopBody','#trainKimballBody'].forEach(id=>{
-      const el=document.querySelector(id); if(el) el.innerHTML = `<tr><td colspan="3">${msg}</td></tr>`;
+      const el=document.querySelector(id);
+      if(el) el.innerHTML = `<tr><td colspan="3">${msg}</td></tr>`;
     });
-    updateBanner('#trainLoopBanner', false);
-    updateBanner('#trainKimballBanner', false);
+    animateIfDue('#trainLoopRun', false);
+    animateIfDue('#trainKimballRun', false);
   }
 }
 
@@ -195,7 +206,7 @@ async function loadBuses(){
       fetchJSON('/api/bus?stpid=14920&rt=77')
     ]);
 
-    const render = (resp, tbodySel, bannerSel) => {
+    const render = (resp, tbodySel, runnerSel) => {
       const tbody = document.querySelector(tbodySel);
       if (!tbody) return;
 
@@ -204,13 +215,13 @@ async function loadBuses(){
 
       if (apiError) {
         tbody.innerHTML = `<tr><td colspan="3">API error: ${apiError}</td></tr>`;
-        updateBanner(bannerSel, false);
+        animateIfDue(runnerSel, false);
         return;
       }
 
       if (!rows.length) {
         tbody.innerHTML = '<tr><td colspan="3">No predictions</td></tr>';
-        updateBanner(bannerSel, false);
+        animateIfDue(runnerSel, false);
         return;
       }
 
@@ -223,18 +234,19 @@ async function loadBuses(){
         return `<tr class="${cls}"><td>${eta}</td><td>${x.vid || ''}</td><td>${x.des || ''}</td></tr>`;
       }).join('');
 
-      updateBanner(bannerSel, anyDue);
+      animateIfDue(runnerSel, anyDue);
     };
 
-    render(eastResp, '#busEastBody', '#busEastBanner');
-    render(westResp, '#busWestBody', '#busWestBanner');
+    render(eastResp, '#busEastBody', '#busEastRun');
+    render(westResp, '#busWestBody', '#busWestRun');
   }catch(err){
     const msg = 'Bus error: ' + (err?.message || err);
     ['#busEastBody','#busWestBody'].forEach(id=>{
-      const el=document.querySelector(id); if(el) el.innerHTML = `<tr><td colspan="3">${msg}</td></tr>`;
+      const el=document.querySelector(id);
+      if(el) el.innerHTML = `<tr><td colspan="3">${msg}</td></tr>`;
     });
-    updateBanner('#busEastBanner', false);
-    updateBanner('#busWestBanner', false);
+    animateIfDue('#busEastRun', false);
+    animateIfDue('#busWestRun', false);
   }
 }
 
