@@ -247,7 +247,7 @@ tr.ok td {
     top: 4px;
     left: 0;
     transform: translateX(-160px);
-    height: 120px !important; /* 👈 INCREASED SIZE */
+    height: 80px !important; /* 👈 INCREASED SIZE */
     width: auto !important;
     filter: drop-shadow(0 6px 12px rgba(0,0,0,.25));
     image-rendering: pixelated;
