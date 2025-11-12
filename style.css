@@ -163,7 +163,7 @@ tr.ok   td { color:var(--fg); }
 /*  Animated runner (image)  */
 .runner {
   position:absolute;
-  top:6px;
+  top:0px;
   left:0;
   transform: translateX(-160px);      /* start offscreen left */
   height:64px;                        /* single source of truth for size */
