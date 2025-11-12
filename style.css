@@ -207,7 +207,7 @@ header{
   font-weight:800;
 }
 
-/* ===== Lock-screen style Now Playing (half-width) ===== */
+/* ===== Lock-screen style Now Playing (left half only) ===== */
 .nowplaying {
   display: flex;
   align-items: center;
@@ -217,10 +217,11 @@ header{
   background: var(--pill-bg);
   border: 1px solid var(--pill-border);
   box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
-  width: 50%;                     /* ⬅ only half of screen width */
-  max-width: 700px;               /* ⬅ prevents stretching on huge displays */
+  width: 50%;                    /* takes up left half */
+  max-width: 700px;
   min-width: 420px;
-  margin: 0 auto;                 /* ⬅ centers it horizontally */
+  margin: 0;                     /* no centering */
+  margin-left: 0;                /* align to left edge */
 }
 
 .np-art{
