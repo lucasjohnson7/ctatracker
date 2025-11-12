@@ -149,3 +149,26 @@ header {
   background:var(--bus-bg);
   color:var(--bus-text);
 }
+
+/* =========================================
+   FORCE TIGHTER SOUTHPORT HEADER SPACING
+   ========================================= */
+
+/* Reduce body padding (top of page) */
+body {
+  padding-top: 4px !important;   /* was 22px */
+}
+
+/* Remove header spacing */
+header {
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+/* Title (Southport) spacing */
+.board-title {
+  margin-top: 0 !important;
+  margin-bottom: 2px !important;   /* was larger */
+  padding: 0 !important;
+}
