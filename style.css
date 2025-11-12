@@ -207,17 +207,20 @@ header{
   font-weight:800;
 }
 
-/* ===== Lock-screen style Now Playing ===== */
-.nowplaying{
-  display:flex;
-  align-items:center;
-  gap:16px;
-  padding:16px 18px;
-  border-radius:16px;
+/* ===== Lock-screen style Now Playing (half-width) ===== */
+.nowplaying {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 16px;
   background: var(--pill-bg);
   border: 1px solid var(--pill-border);
-  box-shadow: 0 8px 24px rgba(0,0,0,.08);
-  width: 100%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+  width: 50%;                     /* ⬅ only half of screen width */
+  max-width: 700px;               /* ⬅ prevents stretching on huge displays */
+  min-width: 420px;
+  margin: 0 auto;                 /* ⬅ centers it horizontally */
 }
 
 .np-art{
