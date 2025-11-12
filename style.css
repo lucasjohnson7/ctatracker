@@ -1,5 +1,6 @@
 /* ================================
    Retro CTA Wall — External Stylesheet
+   (Consolidated: weather + larger type + runner)
    ================================ */
 
 /*  Root Variables  */
@@ -19,9 +20,7 @@
 }
 
 /*  Base Layout  */
-html, body {
-  height:100%;
-}
+html, body { height:100%; }
 
 body {
   margin:0;
@@ -32,6 +31,7 @@ body {
   flex-direction:column;
   gap:16px;
   padding:22px;
+  font-size: 18px; /* ↑ slightly larger across the board */
 }
 
 /*  Header  */
@@ -39,18 +39,45 @@ header {
   display:flex;
   align-items:center;
   justify-content:space-between;
+  gap:16px;
 }
 
 h1 {
   margin:0;
-  font-size:clamp(22px,3vw,32px);
+  font-size:clamp(22px,3.4vw,34px); /* ↑ bigger */
   letter-spacing:.4px;
 }
 
 .timestamp {
   opacity:.9;
-  font-size:14px;
+  font-size:15px; /* ↑ */
 }
+
+/* Header right stack (weather over timestamp) */
+.header-right {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+  min-width:200px;
+}
+
+@media (max-width: 720px){
+  header { flex-direction: column; align-items:flex-start; }
+  .header-right { align-items:flex-start; }
+}
+
+/*  Weather pill  */
+.weather {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 12px; border-radius:12px;
+  background: rgba(0,0,0,0.15);
+  border: 1px solid rgba(0,0,0,0.12);
+  font-size: 15px; line-height: 1.1;
+}
+.weather .wx-emoji { font-size: 20px; }
+.weather .wx-temp  { font-weight: 800; }
+.weather .wx-desc  { opacity: .95; }
 
 /*  Grid (Portrait-first)  */
 .grid {
@@ -58,11 +85,8 @@ h1 {
   grid-template-columns:1fr;
   gap:18px;
 }
-
 @media (min-width:1100px) and (orientation:landscape){
-  .grid {
-    grid-template-columns:1fr 1fr;
-  }
+  .grid { grid-template-columns:1fr 1fr; }
 }
 
 /*  Panels  */
@@ -79,17 +103,7 @@ h1 {
   background:linear-gradient(90deg,#6d3e22,#5a3118);
   border-color:#4c2a14;
 }
-
-.panel.brown .station-label {
-  color:var(--brown-ink);
-}
-
-.panel.brown .vehicle.train {
-  background:#ffead2;
-  color:#3a2617;
-  border-color:#2a160a;
-  box-shadow:inset 0 0 0 2px #cc8e61;
-}
+.panel.brown .station-label { color:var(--brown-ink); }
 
 /*  Titles, Badges  */
 .title {
@@ -98,15 +112,13 @@ h1 {
   justify-content:space-between;
   margin-bottom:10px;
 }
-
 .title h2 {
   margin:0;
-  font-size:clamp(16px,2.4vw,22px);
+  font-size:clamp(18px,2.6vw,24px); /* ↑ */
 }
-
 .badge {
-  font-size:12px;
-  padding:4px 8px;
+  font-size:13px; /* ↑ */
+  padding:5px 10px;
   border-radius:999px;
   background:#efe5d5;
   color:#5a4a37;
@@ -114,42 +126,24 @@ h1 {
 }
 
 /*  Tables  */
-table {
-  width:100%;
-  border-collapse:collapse;
-}
-
+table { width:100%; border-collapse:collapse; }
 th, td {
   text-align:left;
-  padding:10px 8px;
+  padding:12px 10px;                 /* ↑ */
   border-bottom:1px dashed var(--line);
-  font-size:clamp(14px,1.9vw,18px);
+  font-size:17px;                     /* ↑ */
 }
+th { opacity:.9; font-weight:700; }
 
-th {
-  opacity:.9;
-  font-weight:700;
-}
+tr.due  td { color:var(--due);  font-weight:800; }
+tr.soon td { color:var(--warn); font-weight:700; }
+tr.ok   td { color:var(--fg); }
 
-tr.due td {
-  color:var(--due);
-  font-weight:800;
-}
-
-tr.soon td {
-  color:var(--warn);
-  font-weight:700;
-}
-
-tr.ok td {
-  color:var(--fg);
-}
-
-/*  Marquee + Animated Vehicle  */
+/*  Marquee + Labels  */
 .marquee {
   position:relative;
   overflow:hidden;
-  height:52px;
+  height:56px;                        /* ↑ to fit taller sprites */
   border-radius:12px;
   background:linear-gradient(90deg,#f1e7d7,#eaddc9);
   border:2px solid var(--line);
@@ -158,99 +152,44 @@ tr.ok td {
   padding:0 12px;
   margin-bottom:12px;
 }
-
 .station-label {
   font-weight:900;
   letter-spacing:.6px;
   color:#2c2218;
   text-transform:uppercase;
+  font-size:16px;                     /* ↑ */
 }
 
-.vehicle {
+/*  Animated runner (image)  */
+.runner {
   position:absolute;
   top:6px;
-  left:-140px;
-  width:120px;
-  height:40px;
-  border-radius:6px;
-  background:#f6efe3;
-  border:2px solid #000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  color:#1a1333;
-}
-
-.vehicle.bus {
-  background:#e7fff9;
-}
-
-@keyframes roll {
-  from { transform:translateX(0); }
-  to { transform:translateX(calc(100vw + 180px)); }
+  left:0;
+  transform: translateX(-160px);      /* start offscreen left */
+  height:64px;                        /* single source of truth for size */
+  width:auto;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,.25));
+  image-rendering: pixelated;
+  pointer-events:none;
+  visibility:hidden;                  /* shown when animating */
 }
 
 /*  Legend  */
 .legend {
   display:flex;
   gap:10px;
-  font-size:12px;
+  font-size:13px;
   opacity:.9;
   margin-top:8px;
 }
+.dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
 
-.dot {
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  display:inline-block;
-  margin-right:6px;
-}
-
-/* Arrival badge area above the tables */
-.arrival-banner {
-  position: relative;
-  height: 56px;           /* space reserved for the vehicle block */
-  margin: 6px 0 8px;
-  overflow: visible;
-}
-
-/* Start hidden above, centered horizontally */
+/* ----- (Optional) Arrival badge styles kept for future use ----- */
+.arrival-banner { position: relative; height: 56px; margin: 6px 0 8px; overflow: visible; }
 .arrival-banner .vehicle {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translate(-50%, -70px); /* hidden above */
-  opacity: 0;
-  transition: transform .45s ease, opacity .45s ease;
+  position: absolute; top: 0; left: 50%;
+  transform: translate(-50%, -70px);
+  opacity: 0; transition: transform .45s ease, opacity .45s ease;
 }
-
-/* When due: show and park in the center */
-.arrival-banner.show .vehicle {
-  transform: translate(-50%, 0);
-  opacity: 1;
-}
-
-/* When cleared: slide out to the right and fade */
-.arrival-banner.leaving .vehicle {
-  transform: translate(150%, 0);
-  opacity: 0;
-  transition: transform .6s ease-in, opacity .6s ease-in;
-}
-
-/* (Optional) stop the old rolling animation on marquees for clarity */
-.vehicle.roll { animation: none; }
-
-.runner {
-    position: absolute;
-    top: 2px;
-    left: 0;
-    transform: translateX(-160px);
-    height: 47px !important; /* 👈 INCREASED SIZE */
-    width: auto !important;
-    filter: drop-shadow(0 6px 12px rgba(0,0,0,.25));
-    image-rendering: pixelated;
-    pointer-events: none;
-    visibility: hidden;
-}
+.arrival-banner.show .vehicle    { transform: translate(-50%, 0); opacity: 1; }
+.arrival-banner.leaving .vehicle { transform: translate(150%, 0); opacity: 0; transition: transform .6s ease-in, opacity .6s ease-in; }

@@ -5,55 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="stylesheet" href="style.css" />
 <title>CTA Wall — Southport (Brown) + Belmont/Greenview</title>
-
-<!-- Minimal styles for image runners + weather -->
-<style>
-  .marquee { position: relative; overflow: hidden; }
-
-  /* Runner image (train/bus) */
-  .runner {
-    position: absolute;
-    top: 4px;
-    left: 0;
-    transform: translateX(-160px); /* start offscreen left */
-    height: 44px;                  /* sprite height; adjust as you like */
-    width: auto;
-    filter: drop-shadow(0 6px 12px rgba(0,0,0,.25));
-    image-rendering: pixelated;    /* crisp retro pixels */
-    pointer-events: none;
-    visibility: hidden;            /* hidden until we animate */
-  }
-  .runner.parked { /* transform managed via JS */ }
-
-  /* Header layout: title left, weather+timestamp right (stacked) */
-  header {
-    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
-  }
-  .header-right {
-    display:flex; flex-direction:column; align-items:flex-end; gap:6px;
-    min-width: 180px;
-  }
-
-  /* Weather pill */
-  .weather {
-    display:flex; align-items:center; gap:10px;
-    padding:6px 10px; border-radius:12px;
-    background: rgba(0,0,0,0.15);
-    border: 1px solid rgba(255,255,255,0.12);
-    font-size: 14px;
-    line-height: 1.1;
-  }
-  .weather .wx-emoji { font-size: 18px; }
-  .weather .wx-temp { font-weight: 700; }
-  .weather .wx-desc { opacity: .9; }
-  .timestamp { opacity:.7; font-size:14px; }
-
-  /* Make sure header wraps nicely on narrow widths */
-  @media (max-width: 720px){
-    header { flex-direction: column; align-items:flex-start; }
-    .header-right { align-items:flex-start; }
-  }
-</style>
 </head>
 <body>
 <header>
