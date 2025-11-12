@@ -52,46 +52,61 @@ header{
   margin:0 0 2px 0;
 }
 
-/* Weather / timestamp */
-/* --- Weather: big icon, stacked layout --- */
-.header-right{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;
-  gap:10px;
+/* --- Weather: big icon above temp+desc side-by-side --- */
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
 }
 
-.weather{
-  display:flex;
-  flex-direction:column;      /* stack icon over text */
-  align-items:center;         /* center inside the pill */
-  text-align:center;
-  gap:10px;
-  padding:14px 16px;          /* a bit larger */
-  border-radius:14px;
-  background:#00000020;
-  border:1px solid #00000022;
-  /* keep it compact so right edge looks neat */
-  width:max-content;
+.weather {
+  display: flex;
+  flex-direction: column;      /* stack icon above text row */
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #00000020;
+  border: 1px solid #00000022;
+  width: max-content;
 }
 
-.wx-icon{
-  width:84px;                 /* ⬅️ much bigger */
-  height:84px;
-  image-rendering:pixelated;  /* crisp pixels */
+/* big icon */
+.wx-icon {
+  width: 84px;
+  height: 84px;
+  image-rendering: pixelated;
 }
 
-.wx-temp{
-  font-size:28px;             /* bigger temp */
-  font-weight:900;
-  line-height:1;
+/* row for temp + desc */
+.weather-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
-.wx-desc{
-  font-size:18px;             /* bigger description */
-  opacity:.95;
-  line-height:1.1;
+.wx-temp {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
 }
+
+.wx-desc {
+  font-size: 20px;
+  opacity: .95;
+  line-height: 1.1;
+}
+
+/* responsive */
+@media (max-width: 560px) {
+  .wx-icon { width: 64px; height: 64px; }
+  .wx-temp { font-size: 24px; }
+  .wx-desc { font-size: 16px; }
+}
+
 .timestamp{ opacity:.7; font-size:14px; }
 
 /* Lists */
