@@ -19,19 +19,26 @@
 /* Layout */
 body {
   margin:0;
-  padding:24px;
   background:var(--bg);
   color:var(--fg);
-  font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+  display:flex;
+  flex-direction:column;
+  gap:12px;      /* was 16px */
+  padding:12px;  /* was 22px — reduces space at very top */
+  font-size:18px;
 }
+
 
 /* HEADER */
 header {
   display:flex;
+  align-items:center;
   justify-content:space-between;
-  align-items:flex-start;
-  margin-bottom:10px;
+  gap:8px; /* was ~16px */
+  margin-bottom:8px; /* add this to control spacing below title */
 }
+
 
 /* TITLE: CTA style */
 .board-title {
