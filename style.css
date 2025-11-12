@@ -143,7 +143,7 @@ tr.ok   td { color:var(--fg); }
 .marquee {
   position:relative;
   overflow:hidden;
-  height:56px;                        /* ↑ to fit taller sprites */
+  height:70px;                        /* ↑ to fit taller sprites */
   border-radius:12px;
   background:linear-gradient(90deg,#f1e7d7,#eaddc9);
   border:2px solid var(--line);
