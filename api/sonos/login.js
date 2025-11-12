@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+export const config = { runtime: 'edge' };
 
 function qs(obj){ return new URLSearchParams(obj).toString(); }
 

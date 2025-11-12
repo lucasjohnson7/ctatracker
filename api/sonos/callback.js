@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+export const config = { runtime: 'edge' };
 
 async function tokenExchange(body) {
   const basic = btoa(`${process.env.SONOS_CLIENT_ID}:${process.env.SONOS_CLIENT_SECRET}`);

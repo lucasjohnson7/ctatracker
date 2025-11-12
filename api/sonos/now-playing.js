@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+export const config = { runtime: 'edge' };
 
 async function refreshAccessToken() {
   const rt = process.env.SONOS_REFRESH_TOKEN;
