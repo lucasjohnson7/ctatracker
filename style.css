@@ -53,28 +53,45 @@ header{
 }
 
 /* Weather / timestamp */
+/* --- Weather: big icon, stacked layout --- */
 .header-right{
   display:flex;
   flex-direction:column;
   align-items:flex-end;
-  gap:8px; /* a touch bigger */
+  gap:10px;
 }
+
 .weather{
   display:flex;
+  flex-direction:column;      /* stack icon over text */
+  align-items:center;         /* center inside the pill */
+  text-align:center;
   gap:10px;
-  align-items:center;
+  padding:14px 16px;          /* a bit larger */
+  border-radius:14px;
   background:#00000020;
-  padding:10px 14px;           /* bigger pill */
-  border-radius:12px;
-  font-size:16px;              /* bigger text */
+  border:1px solid #00000022;
+  /* keep it compact so right edge looks neat */
+  width:max-content;
 }
+
 .wx-icon{
-  width:32px;                  /* icon is bigger now */
-  height:32px;
-  image-rendering: pixelated;  /* crisp pixels */
+  width:84px;                 /* ⬅️ much bigger */
+  height:84px;
+  image-rendering:pixelated;  /* crisp pixels */
 }
-.wx-temp{ font-weight:800; }
-.wx-desc{ opacity:.9; }
+
+.wx-temp{
+  font-size:28px;             /* bigger temp */
+  font-weight:900;
+  line-height:1;
+}
+
+.wx-desc{
+  font-size:18px;             /* bigger description */
+  opacity:.95;
+  line-height:1.1;
+}
 .timestamp{ opacity:.7; font-size:14px; }
 
 /* Lists */
