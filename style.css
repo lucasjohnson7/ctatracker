@@ -1,221 +1,142 @@
-/* ================================
-   Retro CTA Wall — External Stylesheet
-   CTA message-board skin + weather + runners
-   ================================ */
+/* ===========================
+   CLEAN CTA MESSAGE BOARD
+   =========================== */
 
-/*  Root Variables  */
 :root {
-  --bg:#f5f1e8; 
-  --fg:#1f1a12;
+  --bg:#f5f1e8;
+  --fg:#1b120b;
 
-  --brown:#62361B;
-  --brown-ink:#fff1e6;
+  --brown-bg:#522e18;
+  --brown-text:#ffe7d2;
 
-  --card:#ffffff;
-  --line:#e5dccb;
+  --bus-bg:#2e2e2e;
+  --bus-text:#ffffff;
 
-  --good:#198754;
-  --warn:#c79000;
-  --due:#c43c3c;
+  --soon:#d29f00;
+  --due:#d84242;
 }
 
-/*  Base Layout  */
-html, body { height:100%; }
-
+/* Layout */
 body {
   margin:0;
+  padding:24px;
   background:var(--bg);
   color:var(--fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  display:flex;
-  flex-direction:column;
-  gap:16px;
-  padding:22px;
-  font-size: 18px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;
 }
 
-/*  Header  */
+/* HEADER */
 header {
   display:flex;
-  align-items:center;
   justify-content:space-between;
-  gap:16px;
+  align-items:flex-start;
+  margin-bottom:10px;
 }
-h1 {
-  margin:0;
-  font-size:clamp(22px,3.4vw,34px);
-  letter-spacing:.4px;
-}
-.timestamp { opacity:.9; font-size:15px; }
 
-/* Header right stack */
+/* TITLE: CTA style */
+.board-title {
+  font-size: clamp(28px, 4vw, 46px);
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:#3b2a1d;
+}
+
+/* WEATHER */
 .header-right {
   display:flex;
   flex-direction:column;
   align-items:flex-end;
   gap:6px;
-  min-width:200px;
 }
-@media (max-width: 720px){
-  header { flex-direction: column; align-items:flex-start; }
-  .header-right { align-items:flex-start; }
-}
-
-/*  Weather pill  */
 .weather {
-  display:flex; align-items:center; gap:10px;
-  padding:8px 12px; border-radius:12px;
-  background: rgba(0,0,0,0.15);
-  border: 1px solid rgba(0,0,0,0.12);
-  font-size: 15px; line-height: 1.1;
-}
-.weather .wx-emoji { font-size: 20px; }
-.weather .wx-temp  { font-weight: 800; }
-.weather .wx-desc  { opacity: .95; }
-
-/*  Grid (Portrait-first)  */
-.grid {
-  display:grid;
-  grid-template-columns:1fr;
-  gap:18px;
-}
-@media (min-width:1100px) and (orientation:landscape){
-  .grid { grid-template-columns:1fr 1fr; }
-}
-
-/*  Panels  */
-.panel {
-  background:var(--card);
-  border:2px solid var(--line);
-  border-radius:16px;
-  padding:16px;
-  box-shadow:0 10px 24px rgba(30,23,11,.07);
-}
-
-/*  Brown Line skin */
-.panel.brown .marquee {
-  background:linear-gradient(90deg,#6d3e22,#5a3118);
-  border-color:#4c2a14;
-}
-.panel.brown .station-label { color:var(--brown-ink); }
-
-/*  Bus skin (for rows; marquee stays light) */
-.panel.bus .station-label { color:#1d1d1d; }
-
-/*  Titles, Badges  */
-.title {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:10px;
-}
-.title h2 { margin:0; font-size:clamp(18px,2.6vw,24px); }
-.badge {
-  font-size:13px;
-  padding:5px 10px;
-  border-radius:999px;
-  background:#efe5d5;
-  color:#5a4a37;
-  border:1px solid #dbcdb6;
-}
-
-/*  Marquee + Labels  */
-.marquee {
-  position:relative;
-  overflow:hidden;
-  height:56px;
+  display:flex; gap:8px; align-items:center;
+  background:#00000020;
+  padding:6px 12px;
   border-radius:12px;
-  background:linear-gradient(90deg,#f1e7d7,#eaddc9);
-  border:2px solid var(--line);
-  display:flex;
-  align-items:center;
-  padding:0 12px;
-  margin-bottom:12px;
 }
-.station-label {
-  font-weight:900;
-  letter-spacing:.6px;
-  color:#2c2218;
-  text-transform:uppercase;
-  font-size:22px;
+.wx-emoji { font-size:20px; }
+.wx-temp { font-weight:700; }
+.wx-desc { opacity:.9; }
+.timestamp { opacity:.7; font-size:14px; }
+
+/* LIST SECTION */
+.list {
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+  width:100%;
 }
 
-/*  Animated runner (image)  */
+/* SECTION LABELS (marquee heading) */
+.marquee {
+  font-size:22px;
+  font-weight:900;
+  text-transform:uppercase;
+  color:#251b13;
+  position:relative;
+  padding-left:4px;
+  height:36px;
+  display:flex;
+  align-items:center;
+}
+
+.station-label {
+  position:relative;
+  z-index:2;
+}
+
+/* RUNNER IMAGES */
 .runner {
   position:absolute;
-  top:0;
+  top:-4px;
   left:0;
-  transform: translateX(-160px); /* start offscreen left */
-  height:56px;
-  width:auto;
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,.25));
-  image-rendering: pixelated;
-  pointer-events:none;
-  visibility:hidden;                 /* shown when animating */
+  height:46px;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));
+  visibility:hidden;
 }
 
-/* ===== CTA message-board look ===== */
-
-/* Hide table headers – the board rows carry their own content */
-.panel table thead { display: none; }
-
-/* Remove dashed lines; use solid separators */
-.panel table { border-collapse: separate; border-spacing: 0; }
-.panel table tbody tr { border-bottom: 1px solid rgba(0,0,0,.18); }
-
-/* Base row layout */
-.panel table tbody tr td {
-  padding: 16px 14px;
-  vertical-align: middle;
+/* ARRIVAL ROWS */
+.arrival-group .row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px 10px;
+  border-bottom:1px solid rgba(0,0,0,.18);
 }
 
-/* Two-column feel: left meta/dest + right big ETA */
-.panel table tbody tr td.meta {
-  padding-right: 8px;
-}
-.panel table tbody tr td.eta {
-  width: 1%;
-  white-space: nowrap;
-  text-align: right;
-  font-weight: 900;
-  font-size: clamp(22px, 3.2vw, 34px);
-}
-
-/* Stacked text in left cell */
+/* LEFT SIDE TEXT */
+.meta { display:flex; flex-direction:column; }
 .route {
-  font-size: 14px;
-  opacity: .9;
-  margin-bottom: 4px;
-  letter-spacing: .2px;
+  font-size:14px;
+  opacity:.9;
 }
 .dest {
-  font-size: clamp(20px, 3vw, 28px);
-  font-weight: 900;
-  line-height: 1.05;
+  font-size:24px;
+  font-weight:900;
+  margin-top:2px;
 }
 
-/* Brown Line rows – deep brown with cream ink */
-.panel.brown table tbody tr {
-  background: #5a3118;
-  color: var(--brown-ink);
-  border-bottom-color: rgba(255,255,255,.12);
+/* ETA */
+.eta {
+  font-size:32px;
+  font-weight:900;
+  white-space:nowrap;
 }
-.panel.brown .route { color: #ffe9d5; opacity: .95; }
-.panel.brown .dest  { color: #fff5ea; }
 
-/* Bus rows – charcoal with white */
-.panel.bus table tbody tr {
-  background: #2b2b2b;
-  color: #ffffff;
-  border-bottom-color: rgba(255,255,255,.12);
+/* COLOR CODING */
+.row.due  .eta { color:var(--due); }
+.row.soon .eta { color:var(--soon); }
+
+/* BROWN + BUS SKINS */
+#trainLoopBody .row,
+#trainKimballBody .row {
+  background:var(--brown-bg);
+  color:var(--brown-text);
 }
-.panel.bus .route { color:#dcdcdc; opacity:.95; }
-.panel.bus .dest  { color:#ffffff; }
-
-/* Status coloring for minutes on right */
-.panel table tbody tr.due  td.eta { color: var(--due);  }
-.panel table tbody tr.soon td.eta { color: var(--warn); }
-.panel table tbody tr.ok   td.eta { color: #fff; } /* on dark rows */
-
-/* Empty state cell */
-td.empty { padding: 16px; opacity: .8; }
+#busEastBody .row,
+#busWestBody .row {
+  background:var(--bus-bg);
+  color:var(--bus-text);
+}
