@@ -182,7 +182,7 @@ header {
 
 /* Make the destination inside each brown block larger */
 .panel.brown td:nth-child(3) {
-  font-size: 28px !important;    /* adjust as needed */
+  font-size: 36px !important;    /* adjust as needed */
   font-weight: 900 !important;
   letter-spacing: 0.5px;
 }
