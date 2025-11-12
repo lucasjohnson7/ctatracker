@@ -60,6 +60,9 @@
 </section>
 
 <script>
+
+  
+
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
 const setStamp = ()=> document.getElementById("timestamp").textContent =
   "Updated " + new Date().toLocaleTimeString();
@@ -67,6 +70,24 @@ const setStamp = ()=> document.getElementById("timestamp").textContent =
 /* ===== Weather (Open-Meteo) using PNG icons ===== */
 const WX_LAT=41.94, WX_LON=-87.66;
 const WX_URL=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
+
+// ----- Auto Night Mode (6:01pm–5:59am) -----
+function isNightNow(){
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  // night if 18:01–23:59 or 00:00–05:59
+  return (h > 18) || (h === 18 && m >= 1) || (h < 6);
+}
+
+function applyThemeByTime(){
+  const root = document.documentElement; // <html>
+  if (isNightNow()) root.classList.add('night');
+  else root.classList.remove('night');
+}
+applyThemeByTime();
+// re-check every 5 minutes
+setInterval(applyThemeByTime, 5 * 60 * 1000);
 
 // Map Open-Meteo codes to your filenames
 function wxIconFile(code, now=new Date()){

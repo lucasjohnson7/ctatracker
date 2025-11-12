@@ -2,19 +2,37 @@
    CLEAN CTA MESSAGE BOARD
    =========================== */
 
+/* Day defaults */
 :root{
   --bg:#f5f1e8;
   --fg:#1b120b;
 
+  /* elements that change with theme */
+  --marquee-fg:#251b13;
+  --pill-bg:#00000020;
+  --pill-border:#00000022;
+
+  /* fixed (do NOT change at night) */
   --brown-bg:#522e18;
   --brown-text:#f5f1e8;
-
   --bus-bg:#2e2e2e;
   --bus-text:#f5f1e8;
 
   --soon:#d29f00;
   --due:#d84242;
 }
+
+/* Night overrides */
+:root.night{
+  --bg:#0d0b1a;        /* deep retro night */
+  --fg:#e6ddff;        /* light text */
+  --marquee-fg:#d6ceff;
+  --pill-bg:#ffffff22; /* translucent light pill */
+  --pill-border:#ffffff33;
+}
+
+/* smooth theme fade */
+html, body { transition: background-color .35s ease, color .35s ease; }
 
 /* Layout */
 body{
@@ -53,32 +71,28 @@ header{
 }
 
 /* --- Weather: big icon above temp+desc side-by-side --- */
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
+.header-right{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
 }
 
-.weather {
-  display: flex;
-  flex-direction: column;      /* stack icon above text row */
-  align-items: center;
-  text-align: center;
-  gap: 10px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: #00000020;
-  border: 1px solid #00000022;
-  width: max-content;
+.weather{
+  display:flex;
+  flex-direction:column;      /* keep your stacked icon-over-text layout */
+  align-items:center;
+  text-align:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--pill-bg);
+  border:1px solid var(--pill-border);
+  width:max-content;
 }
-
-/* big icon */
-.wx-icon {
-  width: 84px;
-  height: 84px;
-  image-rendering: pixelated;
-}
+.wx-icon{ width:84px; height:84px; image-rendering:pixelated; }
+.wx-temp{ font-weight:800; font-size:28px; }
+.wx-desc{ opacity:.9; font-size:18px; }
 
 /* row for temp + desc */
 .weather-info {
@@ -86,18 +100,6 @@ header{
   align-items: center;
   justify-content: center;
   gap: 10px;
-}
-
-.wx-temp {
-  font-size: 28px;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.wx-desc {
-  font-size: 20px;
-  opacity: .95;
-  line-height: 1.1;
 }
 
 /* responsive */
@@ -124,7 +126,7 @@ header{
   align-items:center;
   height:36px;
   padding-left:4px;
-  color:#251b13;
+  color:var(--marquee-fg);
   text-transform:uppercase;
   font-weight:900;
   font-size:22px;
