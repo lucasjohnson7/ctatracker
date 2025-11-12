@@ -186,3 +186,11 @@ header {
   font-weight: 900 !important;
   letter-spacing: 0.5px;
 }
+/* Bigger destination text INSIDE the brown train rows */
+#trainLoopBody .dest,
+#trainKimballBody .dest {
+  font-size: 36px !important;   /* tweak size here */
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: .5px;
+}
