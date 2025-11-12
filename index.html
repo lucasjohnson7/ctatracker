@@ -59,6 +59,14 @@
 
 </section>
 
+<div id="sonosNowPlaying" style="display:flex;align-items:center;gap:12px;">
+  <img id="sonosArt" style="width:48px;height:48px;border-radius:6px;object-fit:cover;display:none">
+  <div>
+    <div id="sonosTitle" style="font-weight:800">—</div>
+    <div id="sonosArtist" style="opacity:.8">—</div>
+  </div>
+</div>
+
 <script>
 
   
@@ -256,6 +264,33 @@ refresh();
 setInterval(refresh,20000);
 loadWeather();
 setInterval(loadWeather,300000);
+
+async function loadNowPlaying(){
+  try{
+    const r = await fetch('/api/sonos/now-playing', { cache:'no-store' });
+    const j = await r.json();
+    const art = document.getElementById('sonosArt');
+    const t   = document.getElementById('sonosTitle');
+    const a   = document.getElementById('sonosArtist');
+
+    if (j.playing){
+      t.textContent = j.title || 'Playing…';
+      a.textContent = [j.artist, j.album].filter(Boolean).join(' — ');
+      if (j.image){ art.src = j.image; art.style.display='block'; } else { art.style.display='none'; }
+    } else {
+      t.textContent = 'Nothing playing';
+      a.textContent = '';
+      art.style.display='none';
+    }
+  } catch(e){
+    console.log(e);
+  }
+}
+loadNowPlaying();
+setInterval(loadNowPlaying, 15000);
+
+
+
 </script>
 
 </body>
