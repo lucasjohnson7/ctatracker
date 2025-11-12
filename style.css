@@ -32,7 +32,9 @@
 }
 
 /* smooth theme fade */
-html, body { transition: background-color .35s ease, color .35s ease; }
+html, body { transition: background-color .35s ease, color .35s ease; 
+overflow-x: hidden;  /* hides horizontal scrollbar */
+  overflow-y: hidden;  /* hides vertical scrollbar if you want no scroll at all */}
 
 /* Layout */
 body{
