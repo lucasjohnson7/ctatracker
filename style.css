@@ -172,3 +172,37 @@ header {
   margin-bottom: 2px !important;   /* was larger */
   padding: 0 !important;
 }
+
+/* =========================================
+   BIGGER TRAIN + BUS INFO (ETA / Dest / Run)
+   ========================================= */
+
+/* Table text: MUCH bigger */
+table td, 
+table th {
+  font-size: 26px !important;     /* ← Increase this if needed */
+  padding: 14px 10px !important;  /* ← Taller rows */
+}
+
+/* Make DUE pop more */
+tr.due td {
+  font-size: 28px !important;
+  font-weight: 900 !important;
+}
+
+/* Destination labels bigger */
+table td:last-child {
+  font-size: 26px !important;
+  font-weight: 600;
+}
+
+/* Brown line + bus block titles bigger */
+.title h2 {
+  font-size: 30px !important;
+}
+
+/* Mapid / Stop badges bigger */
+.badge {
+  font-size: 18px !important;
+  padding: 6px 12px !important;
+}
