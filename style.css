@@ -194,3 +194,8 @@ header {
   font-weight: 900;
   letter-spacing: .5px;
 }
+#busEastBody .dest,
+#busWestBody .dest {
+  font-size: 32px !important;
+  font-weight: 800;
+}
