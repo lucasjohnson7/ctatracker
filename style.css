@@ -2,7 +2,7 @@
    CLEAN CTA MESSAGE BOARD
    =========================== */
 
-:root {
+:root{
   --bg:#f5f1e8;
   --fg:#1b120b;
 
@@ -17,86 +17,91 @@
 }
 
 /* Layout */
-body {
+body{
   margin:0;
   background:var(--bg);
   color:var(--fg);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   display:flex;
   flex-direction:column;
-  gap:12px;      /* was 16px */
-  padding:12px;  /* was 22px — reduces space at very top */
+  gap:12px;
+  padding:12px;
+  padding-top:4px;          /* tighter to the top */
   font-size:18px;
 }
 
-
-/* HEADER */
-header {
+/* Header */
+header{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:8px; /* was ~16px */
-  margin-bottom:8px; /* add this to control spacing below title */
+  gap:0;                    /* minimal space around title */
+  margin:0;
+  padding:0;
+  margin-bottom:6px;        /* small space before arrivals */
 }
 
-
-/* TITLE: CTA style */
-.board-title {
-  font-size: clamp(40px, 7vw, 96px); /* ⬅️ bigger title */
-  line-height: 1.05;                 /* tighter, sign-like */
-  font-weight: 900;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: #3b2a1d;
+/* Title (SOUTHPORT) */
+.board-title{
+  font-size:clamp(40px, 7vw, 96px);
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:#3b2a1d;
+  margin:0 0 2px 0;         /* tight below */
 }
 
-
-/* WEATHER */
-.header-right {
+/* Weather / timestamp */
+.header-right{
   display:flex;
   flex-direction:column;
   align-items:flex-end;
   gap:6px;
 }
-.weather {
-  display:flex; gap:8px; align-items:center;
+.weather{
+  display:flex;
+  gap:8px;
+  align-items:center;
   background:#00000020;
   padding:6px 12px;
   border-radius:12px;
 }
-.wx-emoji { font-size:20px; }
-.wx-temp { font-weight:700; }
-.wx-desc { opacity:.9; }
-.timestamp { opacity:.7; font-size:14px; }
+.wx-emoji{ font-size:20px; }
+.wx-temp{ font-weight:700; }
+.wx-desc{ opacity:.9; }
+.timestamp{ opacity:.7; font-size:14px; }
 
-/* LIST SECTION */
-.list {
+/* Lists */
+.list{
   display:flex;
   flex-direction:column;
   gap:20px;
   width:100%;
 }
 
-/* SECTION LABELS (marquee heading) */
-.marquee {
-  font-size:22px;
-  font-weight:900;
-  text-transform:uppercase;
-  color:#251b13;
+/* Section headers (marquees) */
+.marquee{
   position:relative;
-  padding-left:4px;
-  height:36px;
   display:flex;
   align-items:center;
+  height:36px;
+  padding-left:4px;
+  color:#251b13;
+  text-transform:uppercase;
+  font-weight:900;
+  font-size:22px;
 }
-
-.station-label {
+.station-label{
   position:relative;
   z-index:2;
+  font-size:32px;          /* bigger LOOP / KIMBALL / BUS label */
+  font-weight:900;
+  letter-spacing:1px;
 }
 
-/* RUNNER IMAGES */
-.runner {
+/* Runner image (train/bus) */
+.runner{
   position:absolute;
   top:-4px;
   left:0;
@@ -104,92 +109,56 @@ header {
   image-rendering:pixelated;
   filter:drop-shadow(0 4px 8px rgba(0,0,0,.4));
   visibility:hidden;
+  pointer-events:none;
 }
 
-/* ARRIVAL ROWS */
-.arrival-group .row {
+/* Arrival rows */
+.arrival-group .row{
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:14px 10px;
   border-bottom:1px solid rgba(0,0,0,.18);
 }
-
-/* LEFT SIDE TEXT */
-.meta { display:flex; flex-direction:column; }
-.route {
-  font-size:14px;
-  opacity:.9;
-}
-.dest {
+.meta{ display:flex; flex-direction:column; }
+.route{ font-size:14px; opacity:.9; }
+.dest{
   font-size:24px;
   font-weight:900;
   margin-top:2px;
 }
-
-/* ETA */
-.eta {
+.eta{
   font-size:32px;
   font-weight:900;
   white-space:nowrap;
 }
 
-/* COLOR CODING */
-.row.due  .eta { color:var(--due); }
-.row.soon .eta { color:var(--soon); }
+/* Color cues */
+.row.due  .eta{ color:var(--due); }
+.row.soon .eta{ color:var(--soon); }
 
-/* BROWN + BUS SKINS */
+/* Skins: train (brown) & bus (gray) */
 #trainLoopBody .row,
-#trainKimballBody .row {
+#trainKimballBody .row{
   background:var(--brown-bg);
   color:var(--brown-text);
 }
 #busEastBody .row,
-#busWestBody .row {
+#busWestBody .row{
   background:var(--bus-bg);
   color:var(--bus-text);
 }
 
-/* =========================================
-   FORCE TIGHTER SOUTHPORT HEADER SPACING
-   ========================================= */
-
-/* Reduce body padding (top of page) */
-body {
-  padding-top: 4px !important;   /* was 22px */
-}
-
-/* Remove header spacing */
-header {
-  margin: 0 !important;
-  padding: 0 !important;
-  gap: 0 !important;
-}
-
-/* Title (Southport) spacing */
-.board-title {
-  margin-top: 20px !important;
-  margin-bottom: 2px !important;   /* was larger */
-  padding: 0 !important;
-}
-
-/* Make LOOP / KIMBALL / BUS direction text bigger */
-.station-label {
-  font-size: 32px !important;   /* Increase as much as you want */
-  font-weight: 900 !important;
-  letter-spacing: 1px;
-}
-
-/* Bigger destination text INSIDE the brown train rows */
+/* Bigger destination text INSIDE rows (train & bus) */
 #trainLoopBody .dest,
-#trainKimballBody .dest {
-  font-size: 36px !important;   /* tweak size here */
-  line-height: 1.05;
-  font-weight: 900;
-  letter-spacing: .5px;
+#trainKimballBody .dest{
+  font-size:36px;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:.5px;
 }
 #busEastBody .dest,
-#busWestBody .dest {
-  font-size: 32px !important;
-  font-weight: 800;
+#busWestBody .dest{
+  font-size:32px;
+  font-weight:800;
 }
