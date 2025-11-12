@@ -35,12 +35,14 @@ header {
 
 /* TITLE: CTA style */
 .board-title {
-  font-size: clamp(28px, 4vw, 46px);
-  font-weight:900;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  color:#3b2a1d;
+  font-size: clamp(40px, 7vw, 96px); /* ⬅️ bigger title */
+  line-height: 1.05;                 /* tighter, sign-like */
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #3b2a1d;
 }
+
 
 /* WEATHER */
 .header-right {
