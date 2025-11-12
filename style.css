@@ -1,6 +1,6 @@
 /* ================================
    Retro CTA Wall — External Stylesheet
-   (Consolidated: weather + larger type + runner)
+   CTA message-board skin + weather + runners
    ================================ */
 
 /*  Root Variables  */
@@ -31,7 +31,7 @@ body {
   flex-direction:column;
   gap:16px;
   padding:22px;
-  font-size: 18px; /* ↑ slightly larger across the board */
+  font-size: 18px;
 }
 
 /*  Header  */
@@ -41,19 +41,14 @@ header {
   justify-content:space-between;
   gap:16px;
 }
-
 h1 {
   margin:0;
-  font-size:clamp(22px,3.4vw,34px); /* ↑ bigger */
+  font-size:clamp(22px,3.4vw,34px);
   letter-spacing:.4px;
 }
+.timestamp { opacity:.9; font-size:15px; }
 
-.timestamp {
-  opacity:.9;
-  font-size:15px; /* ↑ */
-}
-
-/* Header right stack (weather over timestamp) */
+/* Header right stack */
 .header-right {
   display:flex;
   flex-direction:column;
@@ -61,7 +56,6 @@ h1 {
   gap:6px;
   min-width:200px;
 }
-
 @media (max-width: 720px){
   header { flex-direction: column; align-items:flex-start; }
   .header-right { align-items:flex-start; }
@@ -98,12 +92,15 @@ h1 {
   box-shadow:0 10px 24px rgba(30,23,11,.07);
 }
 
-/*  Brown Line Panel Skin  */
+/*  Brown Line skin */
 .panel.brown .marquee {
   background:linear-gradient(90deg,#6d3e22,#5a3118);
   border-color:#4c2a14;
 }
 .panel.brown .station-label { color:var(--brown-ink); }
+
+/*  Bus skin (for rows; marquee stays light) */
+.panel.bus .station-label { color:#1d1d1d; }
 
 /*  Titles, Badges  */
 .title {
@@ -112,12 +109,9 @@ h1 {
   justify-content:space-between;
   margin-bottom:10px;
 }
-.title h2 {
-  margin:0;
-  font-size:clamp(18px,2.6vw,24px); /* ↑ */
-}
+.title h2 { margin:0; font-size:clamp(18px,2.6vw,24px); }
 .badge {
-  font-size:13px; /* ↑ */
+  font-size:13px;
   padding:5px 10px;
   border-radius:999px;
   background:#efe5d5;
@@ -125,25 +119,11 @@ h1 {
   border:1px solid #dbcdb6;
 }
 
-/*  Tables  */
-table { width:100%; border-collapse:collapse; }
-th, td {
-  text-align:left;
-  padding:12px 10px;                 /* ↑ */
-  border-bottom:1px dashed var(--line);
-  font-size:17px;                     /* ↑ */
-}
-th { opacity:.9; font-weight:700; }
-
-tr.due  td { color:var(--due);  font-weight:800; }
-tr.soon td { color:var(--warn); font-weight:700; }
-tr.ok   td { color:var(--fg); }
-
 /*  Marquee + Labels  */
 .marquee {
   position:relative;
   overflow:hidden;
-  height:56px;                        /* ↑ to fit taller sprites */
+  height:56px;
   border-radius:12px;
   background:linear-gradient(90deg,#f1e7d7,#eaddc9);
   border:2px solid var(--line);
@@ -157,39 +137,85 @@ tr.ok   td { color:var(--fg); }
   letter-spacing:.6px;
   color:#2c2218;
   text-transform:uppercase;
-  font-size:22px;                     /* ↑ */
+  font-size:22px;
 }
 
 /*  Animated runner (image)  */
 .runner {
   position:absolute;
-  top:0px;
+  top:0;
   left:0;
-  transform: translateX(-160px);      /* start offscreen left */
-  height:56px;                        /* single source of truth for size */
+  transform: translateX(-160px); /* start offscreen left */
+  height:56px;
   width:auto;
   filter: drop-shadow(0 6px 12px rgba(0,0,0,.25));
   image-rendering: pixelated;
   pointer-events:none;
-  visibility:hidden;                  /* shown when animating */
+  visibility:hidden;                 /* shown when animating */
 }
 
-/*  Legend  */
-.legend {
-  display:flex;
-  gap:10px;
-  font-size:13px;
-  opacity:.9;
-  margin-top:8px;
-}
-.dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; }
+/* ===== CTA message-board look ===== */
 
-/* ----- (Optional) Arrival badge styles kept for future use ----- */
-.arrival-banner { position: relative; height: 56px; margin: 6px 0 8px; overflow: visible; }
-.arrival-banner .vehicle {
-  position: absolute; top: 0; left: 50%;
-  transform: translate(-50%, -70px);
-  opacity: 0; transition: transform .45s ease, opacity .45s ease;
+/* Hide table headers – the board rows carry their own content */
+.panel table thead { display: none; }
+
+/* Remove dashed lines; use solid separators */
+.panel table { border-collapse: separate; border-spacing: 0; }
+.panel table tbody tr { border-bottom: 1px solid rgba(0,0,0,.18); }
+
+/* Base row layout */
+.panel table tbody tr td {
+  padding: 16px 14px;
+  vertical-align: middle;
 }
-.arrival-banner.show .vehicle    { transform: translate(-50%, 0); opacity: 1; }
-.arrival-banner.leaving .vehicle { transform: translate(150%, 0); opacity: 0; transition: transform .6s ease-in, opacity .6s ease-in; }
+
+/* Two-column feel: left meta/dest + right big ETA */
+.panel table tbody tr td.meta {
+  padding-right: 8px;
+}
+.panel table tbody tr td.eta {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  font-weight: 900;
+  font-size: clamp(22px, 3.2vw, 34px);
+}
+
+/* Stacked text in left cell */
+.route {
+  font-size: 14px;
+  opacity: .9;
+  margin-bottom: 4px;
+  letter-spacing: .2px;
+}
+.dest {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+/* Brown Line rows – deep brown with cream ink */
+.panel.brown table tbody tr {
+  background: #5a3118;
+  color: var(--brown-ink);
+  border-bottom-color: rgba(255,255,255,.12);
+}
+.panel.brown .route { color: #ffe9d5; opacity: .95; }
+.panel.brown .dest  { color: #fff5ea; }
+
+/* Bus rows – charcoal with white */
+.panel.bus table tbody tr {
+  background: #2b2b2b;
+  color: #ffffff;
+  border-bottom-color: rgba(255,255,255,.12);
+}
+.panel.bus .route { color:#dcdcdc; opacity:.95; }
+.panel.bus .dest  { color:#ffffff; }
+
+/* Status coloring for minutes on right */
+.panel table tbody tr.due  td.eta { color: var(--due);  }
+.panel table tbody tr.soon td.eta { color: var(--warn); }
+.panel table tbody tr.ok   td.eta { color: #fff; } /* on dark rows */
+
+/* Empty state cell */
+td.empty { padding: 16px; opacity: .8; }
