@@ -13,8 +13,9 @@
   <h1 class="board-title">Southport &<br>Greenview/Belmont</h1>
 
   <div class="header-right">
+    <!-- Weather (now uses your PNG icons) -->
     <div class="weather" id="weather">
-      <span class="wx-emoji">…</span>
+      <img class="wx-icon" src="" alt="weather icon" />
       <span class="wx-temp">--°</span>
       <span class="wx-desc">Loading...</span>
     </div>
@@ -56,61 +57,81 @@
 </section>
 
 <script>
-/* SAME JS AS BEFORE — unchanged except output formatting */
-
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
 const setStamp = ()=> document.getElementById("timestamp").textContent =
   "Updated " + new Date().toLocaleTimeString();
 
-/* WEATHER */
+/* ===== Weather (Open-Meteo) using PNG icons ===== */
 const WX_LAT=41.94, WX_LON=-87.66;
 const WX_URL=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
 
-function wxIconAndText(code, now=new Date()){
+// Map Open-Meteo codes to your filenames
+function wxIconFile(code, now=new Date()){
   const h=now.getHours(), m=now.getMinutes();
   const isDay=(h>6 && h<18)||(h===6)||(h===18&&m===0);
-  if(code===0) return {emoji:isDay?'☀️':'🌙', text:'Clear'};
-  if([1,2].includes(code)) return {emoji:isDay?'🌤️':'⛅️', text:"Mostly clear"};
-  if(code===3) return {emoji:"⛅️", text:"Partly cloudy"};
-  if([45,48].includes(code)) return {emoji:"🌫️", text:"Foggy"};
-  if([51,53,55,56,57].includes(code)) return {emoji:"🌦️", text:"Drizzle"};
-  if([61,63,65,66,67].includes(code)) return {emoji:"🌧️", text:"Rain"};
-  if([80,81,82].includes(code)) return {emoji:"🌧️", text:"Showers"};
-  if([71,73,75,77].includes(code)) return {emoji:"❄️", text:"Snow"};
-  if([85,86].includes(code)) return {emoji:"❄️", text:"Snow showers"};
-  if([95,96,99].includes(code)) return {emoji:"⛈️", text:"Thunderstorms"};
-  return {emoji:"☁️", text:"Cloudy"};
+
+  if (code === 0) return isDay ? 'sun.png' : 'moon.png';              // clear
+  if ([1,2].includes(code)) return 'partlycloudy.png';               // mostly clear / few clouds
+  if (code === 3) return 'cloudy.png';                               // overcast / partly cloudy
+  if ([45,48].includes(code)) return 'cloudy.png';                   // fog
+  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return 'rain.png';  // drizzle/rain/showers
+  if ([71,73,75,77,85,86].includes(code)) return 'snow.png';         // snow
+  if ([95,96,99].includes(code)) return 'rain.png';                  // t-storms fallback
+  return 'cloudy.png';
+}
+
+function wxText(code, now=new Date()){
+  const h=now.getHours(), m=now.getMinutes();
+  const isDay=(h>6 && h<18)||(h===6)||(h===18&&m===0);
+  if (code === 0) return isDay ? 'Clear' : 'Clear';
+  if ([1,2].includes(code)) return 'Mostly clear';
+  if (code === 3) return 'Partly cloudy';
+  if ([45,48].includes(code)) return 'Foggy';
+  if ([51,53,55,56,57].includes(code)) return 'Drizzle';
+  if ([61,63,65,66,67].includes(code)) return 'Rain';
+  if ([80,81,82].includes(code)) return 'Showers';
+  if ([71,73,75,77].includes(code)) return 'Snow';
+  if ([85,86].includes(code)) return 'Snow showers';
+  if ([95,96,99].includes(code)) return 'Thunderstorms';
+  return 'Cloudy';
 }
 
 async function loadWeather(){
   try{
-    const j=await (await fetch(WX_URL)).json();
+    const j=await (await fetch(WX_URL,{cache:'no-store'})).json();
     const t=Math.round(j.current.temperature_2m);
     const code=j.current.weather_code;
-    const {emoji,text}=wxIconAndText(code);
+
+    const icon = wxIconFile(code);
+    const text = wxText(code);
+
     const el=document.getElementById("weather");
-    el.querySelector(".wx-emoji").textContent=emoji;
-    el.querySelector(".wx-temp").textContent=t+"°F";
-    el.querySelector(".wx-desc").textContent=text;
+    el.querySelector(".wx-icon").src = `./${icon}`;
+    el.querySelector(".wx-icon").alt = text;
+    el.querySelector(".wx-temp").textContent = t+"°F";
+    el.querySelector(".wx-desc").textContent = text;
   }catch{
-    document.getElementById("weather").querySelector(".wx-desc").textContent="Unavailable";
+    const el=document.getElementById("weather");
+    el.querySelector(".wx-icon").src='';
+    el.querySelector(".wx-desc").textContent="Weather unavailable";
   }
 }
 
-/* RUNNERS SAME AS BEFORE */
+/* ===== Runner controller (left→right; park; leave) ===== */
 function controlRunner(el, due){
   if(!el) return;
   const state=el.dataset.state||"idle";
   const marquee=el.parentElement;
   const w=marquee.clientWidth;
   const blockW=el.clientWidth||120;
-  const start=-200, park=w-blockW, exit=w+300;
+  const start=-200, park=Math.max(0,w-blockW-6), exit=w+300;
 
   function anim(from,to,dur,done){
     el.style.visibility="visible";
-    const a=el.animate([{transform:`translateX(${from}px)`},{transform:`translateX(${to}px)`}],{
-      duration:dur, easing:"linear", fill:"forwards"
-    });
+    const a=el.animate(
+      [{transform:`translateX(${from}px)`},{transform:`translateX(${to}px)`}],
+      {duration:dur,easing:"linear",fill:"forwards"}
+    );
     a.onfinish=()=>{el.style.transform=`translateX(${to}px)`;done&&done();};
   }
 
@@ -119,90 +140,75 @@ function controlRunner(el, due){
       el.dataset.state="arriving";
       anim(start,park,1500,()=>el.dataset.state="parked");
     }
-  } else {
-    if(state==="parked"){
-      el.dataset.state="leaving";
-      anim(park,exit,900,()=>{
-        el.dataset.state="idle";
-        el.style.visibility="hidden";
-        el.style.transform=`translateX(${start}px)`;
-      });
-    }
+  } else if (state==="parked"){
+    el.dataset.state="leaving";
+    anim(park,exit,900,()=>{
+      el.dataset.state="idle";
+      el.style.visibility="hidden";
+      el.style.transform=`translateX(${start}px)`;
+    });
   }
 }
 
 async function fetchJSON(url){
-  const r=await fetch(url); if(!r.ok) throw 0; return r.json();
+  const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw 0; return r.json();
 }
 
-/* TRAIN RENDERING (NO TABLES — PURE MESSAGE BOARD FORMAT) */
+/* Renders */
 function renderList(rows, target, runner){
   const el=document.querySelector(target);
-
   if(!rows.length){
     el.innerHTML=`<div class="row empty">No predictions</div>`;
     controlRunner(document.querySelector(runner), false);
     return;
   }
-
   let anyDue=false;
   el.innerHTML=rows.slice(0,5).map(x=>{
     const mins=Math.max(0,Math.round((new Date(x.arrT)-new Date())/60000));
     if(mins<=1) anyDue=true;
     const eta=mins<=1?"DUE":`${mins} min`;
-    return `
-      <div class="row ${classify(mins)}">
-        <div class="meta">
-          <div class="route">Brown Line #${x.rn}</div>
-          <div class="dest">${x.destNm}</div>
-        </div>
-        <div class="eta">${eta}</div>
+    return `<div class="row ${classify(mins)}">
+      <div class="meta">
+        <div class="route">Brown Line #${x.rn}</div>
+        <div class="dest">${x.destNm}</div>
       </div>
-    `;
+      <div class="eta">${eta}</div>
+    </div>`;
   }).join("");
-
   controlRunner(document.querySelector(runner), anyDue);
 }
 
 async function loadTrains(){
   try{
     const data=await fetchJSON("/api/train?mapid=40360");
-    const loop=data.filter(x=>/Loop/i.test(x.stpDe||""));
-    const kimb=data.filter(x=>/Kimball/i.test(x.stpDe||""));
-    renderList(loop, "#trainLoopBody", "#trainLoopRun");
-    renderList(kimb, "#trainKimballBody", "#trainKimballRun");
+    renderList(data.filter(x=>/Loop/i.test(x.stpDe||"")), "#trainLoopBody", "#trainLoopRun");
+    renderList(data.filter(x=>/Kimball/i.test(x.stpDe||"")), "#trainKimballBody", "#trainKimballRun");
   }catch{
     document.querySelector("#trainLoopBody").innerHTML="<div class='row empty'>Error</div>";
     document.querySelector("#trainKimballBody").innerHTML="<div class='row empty'>Error</div>";
   }
 }
 
-/* BUS RENDERING */
 function renderBus(rows, target, runner){
   const el=document.querySelector(target);
-
   if(!rows.length){
     el.innerHTML=`<div class="row empty">No predictions</div>`;
     controlRunner(document.querySelector(runner), false);
     return;
   }
-
   let anyDue=false;
   el.innerHTML=rows.slice(0,5).map(x=>{
     const mins=x.prdctdn==="DUE"?0:parseInt(x.prdctdn,10);
     if(mins<=1) anyDue=true;
     const eta=mins<=1?"DUE":`${mins} min`;
-    return `
-      <div class="row ${classify(mins)} bus-row">
-        <div class="meta">
-          <div class="route">#77 Vehicle ${x.vid}</div>
-          <div class="dest">${x.des}</div>
-        </div>
-        <div class="eta">${eta}</div>
+    return `<div class="row ${classify(mins)} bus-row">
+      <div class="meta">
+        <div class="route">#77 Vehicle ${x.vid}</div>
+        <div class="dest">${x.des}</div>
       </div>
-    `;
+      <div class="eta">${eta}</div>
+    </div>`;
   }).join("");
-
   controlRunner(document.querySelector(runner), anyDue);
 }
 
@@ -212,21 +218,16 @@ async function loadBuses(){
       fetchJSON("/api/bus?stpid=17833&rt=77"),
       fetchJSON("/api/bus?stpid=14920&rt=77")
     ]);
-
     renderBus(east.rows||[], "#busEastBody", "#busEastRun");
     renderBus(west.rows||[], "#busWestBody", "#busWestRun");
-
   }catch{
     document.querySelector("#busEastBody").innerHTML="<div class='row empty'>Error</div>";
     document.querySelector("#busWestBody").innerHTML="<div class='row empty'>Error</div>";
   }
 }
 
-async function refresh(){
-  await Promise.all([loadTrains(), loadBuses()]);
-  setStamp();
-}
-
+/* cadence */
+async function refresh(){ await Promise.all([loadTrains(), loadBuses()]); setStamp(); }
 refresh();
 setInterval(refresh,20000);
 loadWeather();

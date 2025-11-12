@@ -26,7 +26,7 @@ body{
   flex-direction:column;
   gap:12px;
   padding:12px;
-  padding-top:4px;          /* tighter to the top */
+  padding-top:4px;
   font-size:18px;
 }
 
@@ -35,13 +35,13 @@ header{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:0;                    /* minimal space around title */
+  gap:0;
   margin:0;
   padding:0;
-  margin-bottom:6px;        /* small space before arrivals */
+  margin-bottom:6px;
 }
 
-/* Title (SOUTHPORT) */
+/* Title */
 .board-title{
   font-size:clamp(40px, 7vw, 96px);
   line-height:1.05;
@@ -49,7 +49,7 @@ header{
   letter-spacing:1.5px;
   text-transform:uppercase;
   color:#3b2a1d;
-  margin:0 0 2px 0;         /* tight below */
+  margin:0 0 2px 0;
 }
 
 /* Weather / timestamp */
@@ -57,18 +57,23 @@ header{
   display:flex;
   flex-direction:column;
   align-items:flex-end;
-  gap:6px;
+  gap:8px; /* a touch bigger */
 }
 .weather{
   display:flex;
-  gap:8px;
+  gap:10px;
   align-items:center;
   background:#00000020;
-  padding:6px 12px;
+  padding:10px 14px;           /* bigger pill */
   border-radius:12px;
+  font-size:16px;              /* bigger text */
 }
-.wx-emoji{ font-size:20px; }
-.wx-temp{ font-weight:700; }
+.wx-icon{
+  width:32px;                  /* icon is bigger now */
+  height:32px;
+  image-rendering: pixelated;  /* crisp pixels */
+}
+.wx-temp{ font-weight:800; }
 .wx-desc{ opacity:.9; }
 .timestamp{ opacity:.7; font-size:14px; }
 
@@ -80,7 +85,7 @@ header{
   width:100%;
 }
 
-/* Section headers (marquees) */
+/* Section labels */
 .marquee{
   position:relative;
   display:flex;
@@ -95,7 +100,7 @@ header{
 .station-label{
   position:relative;
   z-index:2;
-  font-size:32px;          /* bigger LOOP / KIMBALL / BUS label */
+  font-size:32px;
   font-weight:900;
   letter-spacing:1px;
 }
@@ -137,7 +142,7 @@ header{
 .row.due  .eta{ color:var(--due); }
 .row.soon .eta{ color:var(--soon); }
 
-/* Skins: train (brown) & bus (gray) */
+/* Skins */
 #trainLoopBody .row,
 #trainKimballBody .row{
   background:var(--brown-bg);
@@ -149,7 +154,7 @@ header{
   color:var(--bus-text);
 }
 
-/* Bigger destination text INSIDE rows (train & bus) */
+/* Bigger destination text inside rows */
 #trainLoopBody .dest,
 #trainKimballBody .dest{
   font-size:36px;
