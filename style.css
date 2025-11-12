@@ -33,10 +33,13 @@
 
 /* smooth theme fade */
 html, body { transition: background-color .35s ease, color .35s ease; 
-overflow-x: hidden;  /* hides horizontal scrollbar */
-  overflow-y: hidden;  /* hides vertical scrollbar if you want no scroll at all */}
-
-/* Layout */
+  overflow-y: scroll;
+  scrollbar-width: none; /* Firefox */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
 body{
   margin:0;
   background:var(--bg);
