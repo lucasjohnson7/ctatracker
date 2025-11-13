@@ -1,246 +1,210 @@
-// Vercel Edge Function — Sports for wall board
-// Uses BallDontLie for *today's* Chicago Bulls game (free tier friendly)
-// and simple placeholders for Creighton + Bears.
-
+// api/sports.js
+// Edge function that returns game status for Bulls / Bears / Creighton
+// Uses BALLDONTLIE for NBA + NFL
 export const config = { runtime: 'edge' };
 
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'content-type': 'application/json',
-      'cache-control': 'no-store'
+const API_BASE = 'https://api.balldontlie.io';
+const API_KEY  = process.env.BALLDONTLIE_API_KEY; // you already created this
+
+async function balldontlieFetch(path, params = {}) {
+  if (!API_KEY) {
+    throw new Error('Missing BALLDONTLIE_API_KEY env var');
+  }
+
+  const url = new URL(`${API_BASE}${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null) continue;
+    if (Array.isArray(value)) {
+      value.forEach(v => url.searchParams.append(key, v));
+    } else {
+      url.searchParams.set(key, value);
     }
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: API_KEY },
+    cache: 'no-store',
   });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`BALDONTLIE error ${res.status}: ${text}`);
+  }
+  return res.json();
 }
 
-export default async function handler(req) {
-  try {
-    const apiKey = process.env.BALLDONTLIE_API_KEY;
-    if (!apiKey) {
-      return json({ error: 'Missing BALLDONTLIE_API_KEY' }, 500);
-    }
+/* ---------- Helpers for JSON shape your front-end expects ---------- */
 
-    const { searchParams } = new URL(req.url);
-    const teamKey = (searchParams.get('team') || '').toLowerCase();
-
-    // Route by team key from your front-end: creighton | bulls | bears
-    if (teamKey === 'bulls') {
-      const data = await getBullsStatus(apiKey);
-      return json(data);
-    }
-
-    if (teamKey === 'creighton') {
-      // Placeholder "next game" style entry for now
-      return json({
-        live: null,
-        next: {
-          opponentName: 'TBD',
-          opponentLogo: null,
-          date: 'Check Creighton schedule',
-          time: ''
-        }
-      });
-    }
-
-    if (teamKey === 'bears') {
-      // Placeholder "next game" style entry for now
-      return json({
-        live: null,
-        next: {
-          opponentName: 'TBD',
-          opponentLogo: null,
-          date: 'NFL schedule',
-          time: ''
-        }
-      });
-    }
-
-    // Unknown team key
-    return json({ live: null, next: null });
-
-  } catch (err) {
-    return json({ error: 'Unhandled sports error', detail: String(err) }, 500);
-  }
-}
-
-/**
- * Get today's Chicago Bulls game using BallDontLie.
- *
- * Shape it into { live, next } for your front-end.
- * For now we only look at *today*, not future schedule.
- */
-async function getBullsStatus(apiKey) {
-  const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const todayDate = new Date(todayStr);
-
-  // 1) Get Bulls team ID (we could cache this later)
-  const teamsRes = await fetch('https://api.balldontlie.io/v1/teams', {
-    headers: { Authorization: apiKey }
-  });
-
-  if (!teamsRes.ok) {
-    throw new Error(`Teams request failed: ${teamsRes.status}`);
-  }
-
-  const teamsJson = await teamsRes.json();
-  const teams = teamsJson.data || [];
-
-  const bullsTeam = teams.find(
-    t =>
-      t.full_name === 'Chicago Bulls' ||
-      t.abbreviation === 'CHI'
-  );
-
-  if (!bullsTeam) {
-    throw new Error('Could not find Chicago Bulls in BallDontLie teams');
-  }
-
-  // ---------- STEP 1: look for a game TODAY ----------
-  {
-    const gamesUrl = new URL('https://api.balldontlie.io/v1/games');
-    gamesUrl.searchParams.set('team_ids[]', String(bullsTeam.id));
-    gamesUrl.searchParams.set('dates[]', todayStr);
-    gamesUrl.searchParams.set('per_page', '50');
-
-    const gamesRes = await fetch(gamesUrl.toString(), {
-      headers: { Authorization: apiKey }
-    });
-
-    if (!gamesRes.ok) {
-      throw new Error(`Games request failed: ${gamesRes.status}`);
-    }
-
-    const gamesJson = await gamesRes.json();
-    const games = gamesJson.data || [];
-
-    if (games.length) {
-      const game = games[0]; // Bulls will only have one game today
-
-      const home = game.home_team;
-      const away = game.visitor_team || game.away_team;
-      const isHome = home && home.id === bullsTeam.id;
-
-      const opponent = isHome ? away : home;
-      const opponentName = opponent ? opponent.full_name : 'Opponent';
-
-      const homeScore = game.home_team_score ?? null;
-      const awayScore = game.visitor_team_score ?? null;
-
-      const hasScores =
-        typeof homeScore === 'number' &&
-        typeof awayScore === 'number' &&
-        (!Number.isNaN(homeScore) || !Number.isNaN(awayScore));
-
-      const statusRaw = game.status || '';
-      const status = statusRaw.toLowerCase();
-
-      const isFinal = status.includes('final');
-      const isInGame =
-        status.includes('1st') ||
-        status.includes('2nd') ||
-        status.includes('3rd') ||
-        status.includes('4th') ||
-        status.includes('qtr') ||
-        status.includes('quarter') ||
-        status.includes('half');
-
-      // If we have scores and it's live or finished, treat as "live"
-      if (hasScores && (isFinal || isInGame)) {
-        const bullsScore = isHome ? homeScore : awayScore;
-        const oppScore = isHome ? awayScore : homeScore;
-
-        return {
-          live: {
-            opponentName,
-            opponentLogo: null,
-            usScore: bullsScore,
-            themScore: oppScore,
-            period: isFinal ? 'F' : statusRaw || '',
-            clock: '',
-            homeAway: isHome ? 'vs' : '@'
-          },
-          next: null
-        };
-      }
-
-      // Otherwise: upcoming later today
-      const d = new Date(game.date);
-      const dateText = d.toLocaleDateString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric'
-      });
-      const timeText = d.toLocaleTimeString('en-US', {
-        hour: 'numeric', minute: '2-digit'
-      });
-
-      return {
-        live: null,
-        next: {
-          opponentName,
-          opponentLogo: null,
-          date: dateText,
-          time: timeText
-        }
-      };
-    }
-  }
-
-  // ---------- STEP 2: no game today → find NEXT FUTURE GAME ----------
-  const rangeEnd = new Date(todayDate);
-  rangeEnd.setDate(rangeEnd.getDate() + 60); // look ~2 months ahead
-  const endStr = rangeEnd.toISOString().slice(0, 10);
-
-  const rangeUrl = new URL('https://api.balldontlie.io/v1/games');
-  rangeUrl.searchParams.set('team_ids[]', String(bullsTeam.id));
-  rangeUrl.searchParams.set('start_date', todayStr);
-  rangeUrl.searchParams.set('end_date', endStr);
-  rangeUrl.searchParams.set('per_page', '82');
-
-  const rangeRes = await fetch(rangeUrl.toString(), {
-    headers: { Authorization: apiKey }
-  });
-
-  if (!rangeRes.ok) {
-    throw new Error(`Future games request failed: ${rangeRes.status}`);
-  }
-
-  const rangeJson = await rangeRes.json();
-  const rangeGames = rangeJson.data || [];
-
-  const futureGames = rangeGames
-    .map(g => ({ g, d: new Date(g.date) }))
-    .filter(x => !Number.isNaN(x.d.getTime()) && x.d >= todayDate)
-    .sort((a, b) => a.d - b.d);
-
-  if (!futureGames.length) {
-    // truly nothing upcoming
-    return { live: null, next: null };
-  }
-
-  const nextGame = futureGames[0].g;
-
-  const home2 = nextGame.home_team;
-  const away2 = nextGame.visitor_team || nextGame.away_team;
-  const isHome2 = home2 && home2.id === bullsTeam.id;
-
-  const opp2 = isHome2 ? away2 : home2;
-  const opponentName2 = opp2 ? opp2.full_name : 'Opponent';
-
-  const d2 = new Date(nextGame.date);
-  const dateText2 = d2.toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric'
-  });
-  const timeText2 = d2.toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit'
-  });
-
+function makeEmptyResponse(message = 'No game info.') {
   return {
     live: null,
     next: {
-      opponentName: opponentName2,
+      opponentName: 'TBD',
       opponentLogo: null,
-      date: dateText2,
-      time: timeText2
-    }
+      date: message,
+      time: '',
+    },
   };
+}
+
+/* ---------- BULLS (NBA) ---------- */
+// This assumes you already had something like this; leaving simple here.
+// If you already have a working Bulls implementation, you can keep that
+// and delete this whole function + the bulls case in handler.
+async function getBullsStatus() {
+  // Find Bulls team id (NBA)
+  const teams = await balldontlieFetch('/nba/v1/teams');
+  const bulls = (teams.data || []).find(
+    t => t.full_name === 'Chicago Bulls' || t.abbreviation === 'CHI'
+  );
+  if (!bulls) return makeEmptyResponse('NBA schedule');
+
+  const today = new Date();
+  const season = today.getFullYear(); // close enough for your wall display
+
+  // Get all Bulls games this season
+  const gamesResp = await balldontlieFetch('/nba/v1/games', {
+    seasons: [season],
+    'team_ids[]': [bulls.id],
+    per_page: 100,
+  });
+  const games = gamesResp.data || [];
+
+  return pickLiveAndNextGame(games, bulls.id, 'NBA schedule');
+}
+
+/* ---------- BEARS (NFL) ---------- */
+
+async function getBearsStatus() {
+  // 1) Get all NFL teams and find the Bears
+  const teams = await balldontlieFetch('/nfl/v1/teams');
+  const bears = (teams.data || []).find(
+    t => t.full_name === 'Chicago Bears' ||
+         (t.location === 'Chicago' && t.name === 'Bears')
+  );
+  if (!bears) return makeEmptyResponse('NFL schedule');
+
+  const now = new Date();
+  const season = now.getFullYear();
+
+  // 2) Get all Bears games this season
+  const gamesResp = await balldontlieFetch('/nfl/v1/games', {
+    seasons: [season],
+    'team_ids[]': [bears.id],
+    per_page: 100,
+  });
+  const games = gamesResp.data || [];
+
+  return pickLiveAndNextGame(games, bears.id, 'NFL schedule');
+}
+
+/* ---------- Shared: pick live + next from a list of games ---------- */
+
+function pickLiveAndNextGame(games, ourTeamId, fallbackLabel) {
+  if (!games.length) return makeEmptyResponse(fallbackLabel);
+
+  const now = new Date();
+  let live = null;
+  let next = null;
+
+  for (const g of games) {
+    const date = new Date(g.date);
+    const isHome = g.home_team && g.home_team.id === ourTeamId;
+    const home = g.home_team;
+    const away = g.visitor_team || g.away_team; // different sports name this differently
+    if (!home || !away) continue;
+
+    const usScore   = isHome ? g.home_team_score   : g.visitor_team_score;
+    const themScore = isHome ? g.visitor_team_score : g.home_team_score;
+    const opponent  = isHome ? away : home;
+
+    // Treat non-final past/ongoing games as "live"
+    if (date <= now && g.status && g.status !== 'Final') {
+      live = {
+        opponentName: opponent.full_name || opponent.name,
+        opponentLogo: null, // you can wire in team logos later if you want
+        usScore: typeof usScore === 'number' ? usScore : null,
+        themScore: typeof themScore === 'number' ? themScore : null,
+        period: g.status,    // e.g. "Q4", "Halftime", etc.
+        clock: '',           // NFL games endpoint doesn't expose clock
+        homeAway: isHome ? 'vs' : '@',
+      };
+    }
+
+    // Future game: candidate for "next"
+    if (date > now) {
+      if (!next || date < next._dateObj) {
+        next = {
+          opponentName: opponent.full_name || opponent.name,
+          opponentLogo: null,
+          date: date.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          }),
+          time: date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          }),
+          homeAway: isHome ? 'vs' : '@',
+          _dateObj: date,
+        };
+      }
+    }
+  }
+
+  if (next) {
+    // fold home/away into the text via your front-end (it prefixes "vs" already),
+    // so we just leave opponentName/date/time here.
+    delete next._dateObj;
+  }
+
+  if (!live && !next) {
+    return makeEmptyResponse(fallbackLabel);
+  }
+
+  return { live, next };
+}
+
+/* ---------- CREIGHTON (NCAAB) ---------- */
+
+async function getCreightonStatus() {
+  // On the free NCAAB tier, the Games/Odds endpoints are locked, so we can't
+  // legally pull live scores or schedule from BALLDONTLIE.
+  // We just return a friendly static message.
+  return makeEmptyResponse('Check Creighton schedule');
+}
+
+/* ---------- Main handler ---------- */
+
+export default async function handler(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const team = (searchParams.get('team') || '').toLowerCase();
+
+    let payload;
+    if (team === 'bulls') {
+      payload = await getBullsStatus();
+    } else if (team === 'bears') {
+      payload = await getBearsStatus();
+    } else if (team === 'creighton') {
+      payload = await getCreightonStatus();
+    } else {
+      payload = makeEmptyResponse('Unknown team');
+    }
+
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'cache-control': 'no-store',
+      },
+    });
+  } catch (err) {
+    console.error('sports handler error', err);
+    return new Response(
+      JSON.stringify({ error: 'sports handler error', detail: String(err) }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
+  }
 }
