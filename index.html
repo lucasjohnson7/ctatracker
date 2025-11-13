@@ -47,7 +47,7 @@
 
 </section>
 
-<!-- Bottom row: Music (left) + Weather / Date / Sports (right) -->
+<!-- Bottom row: Music (left) + Weather / Date (top-right) + Sports (bottom-right) -->
 <section class="bottom-row">
   <!-- Lock-screen style Now Playing -->
   <section class="nowplaying" id="nowplaying" aria-live="polite">
@@ -61,32 +61,32 @@
     </div>
   </section>
 
-  <!-- Right-hand info cards -->
+  <!-- Right-hand column: weather + date/time on top, sports full width below -->
   <div class="info-right">
+    <div class="info-top">
+      <!-- Weather card -->
+      <div class="weather" id="weather">
+        <img class="wx-icon" src="" alt="weather icon" />
+        <div class="weather-info">
+          <span class="wx-temp">--°</span>
+          <span class="wx-desc">Loading...</span>
+        </div>
+      </div>
 
-    <!-- Weather card -->
-    <div class="weather" id="weather">
-      <img class="wx-icon" src="" alt="weather icon" />
-      <div class="weather-info">
-        <span class="wx-temp">--°</span>
-        <span class="wx-desc">Loading...</span>
+      <!-- Date / Time card -->
+      <div class="datetime-card">
+        <div class="dt-date" id="dtDate">Thu, Nov 13</div>
+        <div class="dt-time" id="dtTime">1:49 PM</div>
       </div>
     </div>
 
-    <!-- Date / Time card -->
-    <div class="datetime-card">
-      <div class="dt-date" id="dtDate">Thu, Nov 13</div>
-      <div class="dt-time" id="dtTime">1:49 PM</div>
-    </div>
-
-    <!-- Sports card -->
+    <!-- Sports card (wide, under both) -->
     <div class="sports-card" id="sportsCard">
       <div class="sports-title">Sports</div>
       <div class="sports-line" id="sportsLine1">Loading…</div>
       <div class="sports-line" id="sportsLine2"></div>
       <div class="sports-line" id="sportsLine3"></div>
     </div>
-
   </div>
 </section>
 
@@ -320,7 +320,6 @@ function setScrollingText(el, text){
 
 /* ===== Sports card (placeholder data for now) ===== */
 function loadSports(){
-  // TODO: Replace this with a real API call later.
   const examples = [
     'Bulls @ Knicks — 7:00 PM',
     'Blackhawks 3  •  Wild 2 (F)',

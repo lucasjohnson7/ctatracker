@@ -24,10 +24,10 @@
 
 /* Night overrides */
 :root.night{
-  --bg:#0d0b1a;        /* deep retro night */
-  --fg:#e6ddff;        /* light text */
+  --bg:#0d0b1a;
+  --fg:#e6ddff;
   --marquee-fg:#d6ceff;
-  --pill-bg:#ffffff22; /* translucent light pill */
+  --pill-bg:#ffffff22;
   --pill-border:#ffffff33;
 }
 
@@ -35,11 +35,11 @@
 html, body {
   transition: background-color .35s ease, color .35s ease; 
   overflow-y: scroll;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: none;
 }
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge */
+  display:none;
 }
 
 body{
@@ -165,7 +165,7 @@ header{
 .bottom-row{
   display:flex;
   align-items:flex-start;
-  gap:24px;
+  gap:12px;                 /* same gap as inside right column */
   justify-content:space-between;
 }
 
@@ -180,8 +180,8 @@ header{
   border-radius:16px;
   background:var(--pill-bg);
   border:1px solid var(--pill-border);
-  box-shadow:0 8px 24px rgba(0, 0, 0, .08);
-  flex:1 1 auto;      /* take remaining space on the left */
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+  flex:1 1 auto;
   min-width:0;
 }
 
@@ -193,7 +193,7 @@ header{
   image-rendering:pixelated;
   background:#00000014;
   flex:0 0 auto;
-  display:none;        /* hidden until we have art */
+  display:none;
 }
 
 .np-meta{
@@ -205,43 +205,43 @@ header{
 /* base text styles with scrolling support */
 .np-title,
 .np-artist{
-  --scroll-distance: 0px;
-  position: relative;
-  overflow: hidden;
-  white-space: nowrap;
+  --scroll-distance:0px;
+  position:relative;
+  overflow:hidden;
+  white-space:nowrap;
 }
 
 .np-title span,
 .np-artist span{
-  display: inline-block;
-  transform: translateX(0);
+  display:inline-block;
+  transform:translateX(0);
 }
 
 /* scrolling state */
 .np-title.scrolling span,
 .np-artist.scrolling span{
-  animation: np-scroll 8s linear infinite;
-  animation-delay: 4s;
+  animation:np-scroll 8s linear infinite;
+  animation-delay:4s;
 }
 
 @keyframes np-scroll{
-  0%, 10%   { transform: translateX(0); }
-  90%, 100% { transform: translateX(calc(-1 * var(--scroll-distance))); }
+  0%,10%   { transform:translateX(0); }
+  90%,100% { transform:translateX(calc(-1 * var(--scroll-distance))); }
 }
 
 .np-title{
-  font-size: clamp(28px, 4.2vw, 44px);
-  font-weight: 900;
-  line-height: 1.05;
-  letter-spacing: .4px;
-  margin: 2px 0 6px;
+  font-size:clamp(28px, 4.2vw, 44px);
+  font-weight:900;
+  line-height:1.05;
+  letter-spacing:.4px;
+  margin:2px 0 6px;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
 
 .np-artist{
-  font-size: clamp(16px, 2.4vw, 22px);
+  font-size:clamp(16px, 2.4vw, 22px);
   opacity:.9;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -253,45 +253,56 @@ header{
   margin-top:10px;
   height:8px;
   border-radius:999px;
-  background: rgba(0,0,0,.12);
+  background:rgba(0,0,0,.12);
   overflow:hidden;
   width:100%;
 }
-:root.night .np-bar{ background: rgba(255,255,255,.18); }
+:root.night .np-bar{ background:rgba(255,255,255,.18); }
 
 .np-bar-fill{
   height:100%;
   width:0%;
-  background: linear-gradient(90deg, #ffad33, #ff6b6b);
-  transition: width .4s ease;
+  background:linear-gradient(90deg,#ffad33,#ff6b6b);
+  transition:width .4s ease;
 }
 
-/* Right side container: Weather + Date/Time + Sports */
+/* Right side column */
 .info-right{
   flex:0 0 auto;
   display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.info-top{
+  display:flex;
   flex-direction:row;
-  gap:8px;
+  gap:12px;   /* SAME as .bottom-row gap so spacing is equal */
 }
 
 /* Generic card style shared by weather, datetime, sports */
 .weather,
 .datetime-card,
 .sports-card{
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--pill-bg);
+  border:1px solid var(--pill-border);
+  box-sizing:border-box;
+}
+
+/* Weather + datetime: fixed size top cards */
+.weather,
+.datetime-card{
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
   text-align:center;
   gap:10px;
-  padding:10px 14px;
-  border-radius:12px;
-  background:var(--pill-bg);
-  border:1px solid var(--pill-border);
 
-  width:200px;        /* equal width so spacing is even */
+  width:200px;
   height:170px;
-  box-sizing:border-box;
 }
 
 /* Weather-specific bits */
@@ -328,13 +339,25 @@ header{
   font-weight:900;
 }
 
-/* Sports card */
+/* Sports card: full width under the two top cards */
+.sports-card{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:4px;
+  width:100%;         /* span under both weather + date/time */
+  min-height:80px;
+  text-align:left;
+}
+
 .sports-title{
   font-size:20px;
   font-weight:900;
   letter-spacing:.08em;
   text-transform:uppercase;
 }
+
 .sports-line{
   font-size:14px;
   line-height:1.4;
