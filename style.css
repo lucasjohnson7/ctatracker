@@ -159,7 +159,7 @@ header{
 }
 
 /* ===========================
-   Bottom row: Music + Weather
+   Bottom row: Music + Weather/Date
    =========================== */
 
 .bottom-row{
@@ -204,7 +204,7 @@ header{
   width:100%;
 }
 
-/* base text styles (keep these) */
+/* base text styles with scrolling support */
 .np-title,
 .np-artist{
   --scroll-distance: 0px;
@@ -219,23 +219,16 @@ header{
   transform: translateX(0);
 }
 
-/* scrolling state – 8s duration, 4s delay is fine */
+/* scrolling state */
 .np-title.scrolling span,
 .np-artist.scrolling span{
   animation: np-scroll 8s linear infinite;
   animation-delay: 4s;
 }
 
-/* Pause at start, then scroll all the way, then pause at end */
-@keyframes np-scroll {
-  0%,
-  15% {
-    transform: translateX(0); /* sit still for a bit */
-  }
-  85%,
-  100% {
-    transform: translateX(calc(-1 * var(--scroll-distance)));
-  }
+@keyframes np-scroll{
+  0%, 10%   { transform: translateX(0); }
+  90%, 100% { transform: translateX(calc(-1 * var(--scroll-distance))); }
 }
 
 .np-title{
@@ -244,37 +237,17 @@ header{
   line-height: 1.05;
   letter-spacing: .4px;
   margin: 2px 0 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .np-artist{
   font-size: clamp(16px, 2.4vw, 22px);
-  opacity: .9;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* the actual scrolling text lives in a span */
-.np-title span,
-.np-artist span{
-  display:inline-block;
-}
-
-/* when JS adds .scrolling, animate horizontally with small delay */
-.np-title.scrolling span,
-.np-artist.scrolling span{
-  animation: np-scroll 8s linear infinite;
-  animation-delay: 4s;  /* pause before scrolling */
-}
-
-@keyframes np-scroll{
-  0%   { transform: translateX(0); }
-  10%  { transform: translateX(0); }
-  90%  { transform: translateX(calc(-1 * var(--scroll-distance))); }
-  100% { transform: translateX(calc(-1 * var(--scroll-distance))); }
+  opacity:.9;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 /* subtle progress bar */
@@ -295,27 +268,12 @@ header{
   transition: width .4s ease;
 }
 
-/* Compact on small screens */
-@media (max-width: 680px){
-  .nowplaying{
-    gap:10px;
-    padding:12px 14px;
-    width:100%;
-    min-width:0;
-  }
-  .np-art{
-    width:140px;
-    height:140px;
-    border-radius:12px;
-  }
-}
-
-/* Weather container on the right of music */
-.weather-shell{
+/* Right side container: Weather + Date/Time */
+.info-right{
   flex:0 0 auto;
   display:flex;
-  align-items:flex-start;
-  justify-content:flex-start;
+  flex-direction:column;
+  gap:8px;
 }
 
 /* Weather: fixed-size card so it doesn’t jump */
@@ -357,13 +315,50 @@ header{
   font-size:18px;
 }
 
-/* tweak for very small screens */
+/* Date/Time card – same size as weather */
+.datetime-card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--pill-bg);
+  border:1px solid var(--pill-border);
+
+  width:230px;        /* match weather */
+  height:170px;       /* match weather */
+  box-sizing:border-box;
+  text-align:center;
+}
+
+.dt-date{
+  font-size:18px;
+  font-weight:700;
+  opacity:.9;
+}
+
+.dt-time{
+  font-size:26px;
+  font-weight:900;
+}
+
+/* Compact on small screens */
 @media (max-width: 680px){
   .bottom-row{
     flex-direction:column;
     align-items:flex-start;
   }
-  .weather-shell{
-    margin-top:8px;
+  .nowplaying{
+    gap:10px;
+    padding:12px 14px;
+    width:100%;
+    min-width:0;
+  }
+  .np-art{
+    width:140px;
+    height:140px;
+    border-radius:12px;
   }
 }

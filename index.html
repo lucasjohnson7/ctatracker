@@ -47,7 +47,7 @@
 
 </section>
 
-<!-- Bottom row: Music (left) + Weather (right, fixed size) -->
+<!-- Bottom row: Music (left) + Weather + Date/Time (right) -->
 <section class="bottom-row">
   <!-- Lock-screen style Now Playing -->
   <section class="nowplaying" id="nowplaying" aria-live="polite">
@@ -61,14 +61,19 @@
     </div>
   </section>
 
-  <!-- Weather beside music -->
-  <div class="weather-shell">
+  <!-- Right side: Weather + Date/Time, same card size -->
+  <div class="info-right">
     <div class="weather" id="weather">
       <img class="wx-icon" src="" alt="weather icon" />
       <div class="weather-info">
         <span class="wx-temp">--°</span>
         <span class="wx-desc">Loading...</span>
       </div>
+    </div>
+
+    <div class="datetime-card" id="datetimeCard">
+      <div id="dateText" class="dt-date">—</div>
+      <div id="timeText" class="dt-time">—</div>
     </div>
   </div>
 </section>
@@ -150,6 +155,29 @@ async function loadWeather(){
     el.querySelector(".wx-icon").src='';
     el.querySelector(".wx-desc").textContent="Weather unavailable";
   }
+}
+
+/* ===== Date/Time card updater ===== */
+function updateDateTimeCard(){
+  const now = new Date();
+
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  });
+
+  const timeStr = now.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+
+  const dateEl = document.getElementById('dateText');
+  const timeEl = document.getElementById('timeText');
+  if (!dateEl || !timeEl) return;
+
+  dateEl.textContent = dateStr;   // e.g. "Thu, Nov 13"
+  timeEl.textContent = timeStr;   // e.g. "11:58 AM"
 }
 
 /* ===== Runner controller (left→right; park; leave) ===== */
@@ -280,8 +308,7 @@ function setScrollingText(el, text){
 
     // Only scroll if we actually overflow
     if (overflow > 8) {
-      // BIG overshoot so the very end definitely passes through
-      // - scroll past the “just enough” point by half a container width
+      // overshoot so the very end definitely passes through
       const distance = overflow + containerWidth * 0.5;
       el.style.setProperty('--scroll-distance', distance + 'px');
       el.classList.add('scrolling');
@@ -338,10 +365,12 @@ async function loadNowPlaying(){
   }
 }
 
-refresh();
-loadWeather();
 loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
+
+// kick off date/time card updates
+updateDateTimeCard();
+setInterval(updateDateTimeCard, 10000);
 </script>
 
 </body>
