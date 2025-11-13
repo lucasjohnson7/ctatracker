@@ -47,7 +47,7 @@
 
 </section>
 
-<!-- Bottom row: Music (left) + Weather + Date/Time (right) -->
+<!-- Bottom row: Music (left) + Weather / Date / Sports (right) -->
 <section class="bottom-row">
   <!-- Lock-screen style Now Playing -->
   <section class="nowplaying" id="nowplaying" aria-live="polite">
@@ -61,8 +61,10 @@
     </div>
   </section>
 
-  <!-- Right side: Weather + Date/Time, same card size -->
+  <!-- Right-hand info cards -->
   <div class="info-right">
+
+    <!-- Weather card -->
     <div class="weather" id="weather">
       <img class="wx-icon" src="" alt="weather icon" />
       <div class="weather-info">
@@ -71,17 +73,45 @@
       </div>
     </div>
 
-    <div class="datetime-card" id="datetimeCard">
-      <div id="dateText" class="dt-date">—</div>
-      <div id="timeText" class="dt-time">—</div>
+    <!-- Date / Time card -->
+    <div class="datetime-card">
+      <div class="dt-date" id="dtDate">Thu, Nov 13</div>
+      <div class="dt-time" id="dtTime">1:49 PM</div>
     </div>
+
+    <!-- Sports card -->
+    <div class="sports-card" id="sportsCard">
+      <div class="sports-title">Sports</div>
+      <div class="sports-line" id="sportsLine1">Loading…</div>
+      <div class="sports-line" id="sportsLine2"></div>
+      <div class="sports-line" id="sportsLine3"></div>
+    </div>
+
   </div>
 </section>
 
 <script>
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
-const setStamp = ()=> document.getElementById("timestamp").textContent =
-  "Updated " + new Date().toLocaleTimeString();
+
+/* Timestamp + date/time card */
+const setStamp = ()=>{
+  const now = new Date();
+  const ts = document.getElementById("timestamp");
+  if (ts) ts.textContent = "Updated " + now.toLocaleTimeString();
+
+  const dateEl = document.getElementById("dtDate");
+  const timeEl = document.getElementById("dtTime");
+  if (dateEl){
+    dateEl.textContent = now.toLocaleDateString("en-US", {
+      weekday:"short", month:"short", day:"numeric"
+    });
+  }
+  if (timeEl){
+    timeEl.textContent = now.toLocaleTimeString("en-US", {
+      hour:"numeric", minute:"2-digit"
+    });
+  }
+};
 
 /* ===== Weather (Open-Meteo) using PNG icons ===== */
 const WX_LAT=41.94, WX_LON=-87.66;
@@ -102,7 +132,6 @@ function applyThemeByTime(){
   else root.classList.remove('night');
 }
 applyThemeByTime();
-// re-check every 5 minutes
 setInterval(applyThemeByTime, 5 * 60 * 1000);
 
 // Map Open-Meteo codes to your filenames
@@ -155,29 +184,6 @@ async function loadWeather(){
     el.querySelector(".wx-icon").src='';
     el.querySelector(".wx-desc").textContent="Weather unavailable";
   }
-}
-
-/* ===== Date/Time card updater ===== */
-function updateDateTimeCard(){
-  const now = new Date();
-
-  const dateStr = now.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  });
-
-  const timeStr = now.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit'
-  });
-
-  const dateEl = document.getElementById('dateText');
-  const timeEl = document.getElementById('timeText');
-  if (!dateEl || !timeEl) return;
-
-  dateEl.textContent = dateStr;   // e.g. "Thu, Nov 13"
-  timeEl.textContent = timeStr;   // e.g. "11:58 AM"
 }
 
 /* ===== Runner controller (left→right; park; leave) ===== */
@@ -291,7 +297,6 @@ async function loadBuses(){
 
 /* ===== Scrolling text helper for Now Playing ===== */
 function setScrollingText(el, text){
-  // reset
   el.style.setProperty('--scroll-distance', '0px');
   el.classList.remove('scrolling');
   el.innerHTML = '';
@@ -300,15 +305,12 @@ function setScrollingText(el, text){
   span.textContent = text || '';
   el.appendChild(span);
 
-  // wait a frame so layout is correct
   requestAnimationFrame(() => {
     const containerWidth = el.clientWidth;
     const textWidth      = span.scrollWidth;
     const overflow       = textWidth - containerWidth;
 
-    // Only scroll if we actually overflow
     if (overflow > 8) {
-      // overshoot so the very end definitely passes through
       const distance = overflow + containerWidth * 0.5;
       el.style.setProperty('--scroll-distance', distance + 'px');
       el.classList.add('scrolling');
@@ -316,12 +318,40 @@ function setScrollingText(el, text){
   });
 }
 
+/* ===== Sports card (placeholder data for now) ===== */
+function loadSports(){
+  // TODO: Replace this with a real API call later.
+  const examples = [
+    'Bulls @ Knicks — 7:00 PM',
+    'Blackhawks 3  •  Wild 2 (F)',
+    'Bears vs Lions — Sun 12:00 PM'
+  ];
+  const l1 = document.getElementById('sportsLine1');
+  const l2 = document.getElementById('sportsLine2');
+  const l3 = document.getElementById('sportsLine3');
+
+  if (!l1) return;
+  l1.textContent = examples[0] || '';
+  l2.textContent = examples[1] || '';
+  l3.textContent = examples[2] || '';
+}
+
 /* cadence */
-async function refresh(){ await Promise.all([loadTrains(), loadBuses()]); setStamp(); }
+async function refresh(){
+  await Promise.all([loadTrains(), loadBuses()]);
+  setStamp();
+}
 refresh();
 setInterval(refresh,20000);
+
 loadWeather();
 setInterval(loadWeather,300000);
+
+function tickClocks(){
+  setStamp();
+}
+tickClocks();
+setInterval(tickClocks, 60000);
 
 async function loadNowPlaying(){
   try{
@@ -346,7 +376,6 @@ async function loadNowPlaying(){
         art.style.display = 'none';
       }
 
-      // Optional progress support (positionMs / durationMs from your API)
       if (Number.isFinite(j.positionMs) && Number.isFinite(j.durationMs) && j.durationMs > 0){
         const pct = Math.max(0, Math.min(100, (j.positionMs / j.durationMs) * 100));
         fill.style.width = pct.toFixed(1) + '%';
@@ -367,10 +396,7 @@ async function loadNowPlaying(){
 
 loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
-
-// kick off date/time card updates
-updateDateTimeCard();
-setInterval(updateDateTimeCard, 10000);
+loadSports();
 </script>
 
 </body>

@@ -159,34 +159,30 @@ header{
 }
 
 /* ===========================
-   Bottom row: Music + Weather/Date
+   Bottom row: Music + Weather/Date/Sports
    =========================== */
 
 .bottom-row{
   display:flex;
   align-items:flex-start;
-  gap:24px;              /* this will be the gap between MUSIC and WEATHER */
-  justify-content:flex-start;   /* or just remove this line entirely */
+  gap:24px;
+  justify-content:space-between;
 }
-
-
 
 /* Lock-screen style Now Playing – album art on top, centered */
 .nowplaying {
-  display: flex;
-  flex-direction: column;
-  align-items: center;     /* center art + text */
-  text-align: center;
-  gap: 12px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: var(--pill-bg);
-  border: 1px solid var(--pill-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
-  width: 50%;             /* left half of screen area */
-  max-width: 700px;
-  min-width: 420px;
-  margin: 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:12px;
+  padding:16px 18px;
+  border-radius:16px;
+  background:var(--pill-bg);
+  border:1px solid var(--pill-border);
+  box-shadow:0 8px 24px rgba(0, 0, 0, .08);
+  flex:1 1 auto;      /* take remaining space on the left */
+  min-width:0;
 }
 
 .np-art{
@@ -196,7 +192,7 @@ header{
   object-fit:cover;
   image-rendering:pixelated;
   background:#00000014;
-  flex: 0 0 auto;
+  flex:0 0 auto;
   display:none;        /* hidden until we have art */
 }
 
@@ -270,19 +266,22 @@ header{
   transition: width .4s ease;
 }
 
-/* Right side container: Weather + Date/Time (side by side) */
+/* Right side container: Weather + Date/Time + Sports */
 .info-right{
   flex:0 0 auto;
   display:flex;
   flex-direction:row;
-  gap:24px;   /* same as .bottom-row gap */
+  gap:8px;
 }
 
-/* Weather: fixed-size card so it doesn’t jump */
-.weather{
+/* Generic card style shared by weather, datetime, sports */
+.weather,
+.datetime-card,
+.sports-card{
   display:flex;
   flex-direction:column;
   align-items:center;
+  justify-content:center;
   text-align:center;
   gap:10px;
   padding:10px 14px;
@@ -290,11 +289,12 @@ header{
   background:var(--pill-bg);
   border:1px solid var(--pill-border);
 
-  width:230px;        /* fixed size so it stays stable */
-  height:170px;       /* fixed height */
+  width:200px;        /* equal width so spacing is even */
+  height:170px;
   box-sizing:border-box;
 }
 
+/* Weather-specific bits */
 .wx-icon{
   width:72px;
   height:72px;
@@ -317,33 +317,27 @@ header{
   font-size:18px;
 }
 
-/* Date/Time card – same size as weather */
-.datetime-card{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  padding:10px 14px;
-  border-radius:12px;
-  background:var(--pill-bg);
-  border:1px solid var(--pill-border);
-
-  width:230px;        /* match weather */
-  height:170px;       /* match weather */
-  box-sizing:border-box;
-  text-align:center;
-}
-
+/* Date/Time card */
 .dt-date{
   font-size:22px;
   font-weight:700;
   opacity:.9;
 }
-
 .dt-time{
   font-size:32px;
   font-weight:900;
+}
+
+/* Sports card */
+.sports-title{
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.sports-line{
+  font-size:14px;
+  line-height:1.4;
 }
 
 /* Compact on small screens */
@@ -355,12 +349,13 @@ header{
   .nowplaying{
     gap:10px;
     padding:12px 14px;
-    width:100%;
-    min-width:0;
   }
   .np-art{
     width:140px;
     height:140px;
     border-radius:12px;
+  }
+  .info-right{
+    margin-top:8px;
   }
 }
