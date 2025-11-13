@@ -165,11 +165,10 @@ header{
 .bottom-row{
   display:flex;
   align-items:flex-start;
-  gap:24px;
-
-  /* NEW */
-  justify-content:space-between;
+  gap:24px;              /* this will be the gap between MUSIC and WEATHER */
+  justify-content:flex-start;   /* or just remove this line entirely */
 }
+
 
 
 /* Lock-screen style Now Playing – album art on top, centered */
@@ -276,9 +275,8 @@ header{
   flex:0 0 auto;
   display:flex;
   flex-direction:row;
-  gap:8px;
+  gap:24px;   /* same as .bottom-row gap */
 }
-
 
 /* Weather: fixed-size card so it doesn’t jump */
 .weather{
