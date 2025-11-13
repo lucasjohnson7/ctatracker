@@ -156,28 +156,14 @@ header{
   pointer-events:none;
 }
 
-/* Fixed-height arrival viewports: 4 rows max */
-.arrival-group {
-  --rows: 4;                  /* was 5 */
-  --row-h: 72px;              /* tweak if you want taller/shorter rows */
-  min-height: calc(var(--rows) * var(--row-h));
-  max-height: calc(var(--rows) * var(--row-h));
-  overflow: hidden;
+/* Arrival rows */
+.arrival-group .row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px 10px;
+  border-bottom:1px solid rgba(0,0,0,.18);
 }
-
-/* Ensure each row has a fixed height to avoid layout shift */
-.arrival-group .row {
-  height: var(--row-h);
-  display: flex;
-  align-items: center;
-}
-
-/* Style for placeholder rows (when fewer than 4 real arrivals) */
-.arrival-group .row.placeholder .meta,
-.arrival-group .row.placeholder .eta {
-  opacity: .35;
-}
-
 .meta{ display:flex; flex-direction:column; }
 .route{ font-size:14px; opacity:.9; }
 .dest{

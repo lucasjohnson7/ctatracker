@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
-  <title>CTA Wall — Southport</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<title>CTA Wall — Southport</title>
 </head>
 
 <body>
@@ -13,14 +13,14 @@
   <h1 class="board-title">Southport &<br>Greenview/Belmont</h1>
 
   <div class="header-right">
-    <!-- Weather (PNG icons) -->
+    <!-- Weather (now uses your PNG icons) -->
     <div class="weather" id="weather">
-      <img class="wx-icon" src="" alt="weather icon" />
-      <div class="weather-info">
-        <span class="wx-temp">--°</span>
-        <span class="wx-desc">Loading...</span>
-      </div>
-    </div>
+  <img class="wx-icon" src="" alt="weather icon" />
+  <div class="weather-info">
+    <span class="wx-temp">--°</span>
+    <span class="wx-desc">Loading...</span>
+  </div>
+</div>
 
     <div class="timestamp" id="timestamp">Loading…</div>
   </div>
@@ -59,7 +59,7 @@
 
 </section>
 
-<!-- Lock-screen style Now Playing (left-side card) -->
+<!-- Lock-screen style Now Playing -->
 <section class="nowplaying" id="nowplaying" aria-live="polite">
   <img id="npArt" class="np-art" alt="Album art" />
   <div class="np-meta">
@@ -71,14 +71,18 @@
   </div>
 </section>
 
+
 <script>
+
+  
+
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
 const setStamp = ()=> document.getElementById("timestamp").textContent =
   "Updated " + new Date().toLocaleTimeString();
 
 /* ===== Weather (Open-Meteo) using PNG icons ===== */
-const WX_LAT = 41.94, WX_LON = -87.66;
-const WX_URL = `https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
+const WX_LAT=41.94, WX_LON=-87.66;
+const WX_URL=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
 
 // ----- Auto Night Mode (6:01pm–5:59am) -----
 function isNightNow(){
@@ -95,6 +99,7 @@ function applyThemeByTime(){
   else root.classList.remove('night');
 }
 applyThemeByTime();
+// re-check every 5 minutes
 setInterval(applyThemeByTime, 5 * 60 * 1000);
 
 // Map Open-Meteo codes to your filenames
@@ -103,12 +108,12 @@ function wxIconFile(code, now=new Date()){
   const isDay=(h>6 && h<18)||(h===6)||(h===18&&m===0);
 
   if (code === 0) return isDay ? 'sun.png' : 'moon.png';              // clear
-  if ([1,2].includes(code)) return 'partlycloudy.png';                // mostly clear / few clouds
-  if (code === 3) return 'cloudy.png';                                // overcast / partly cloudy
-  if ([45,48].includes(code)) return 'cloudy.png';                    // fog
+  if ([1,2].includes(code)) return 'partlycloudy.png';               // mostly clear / few clouds
+  if (code === 3) return 'cloudy.png';                               // overcast / partly cloudy
+  if ([45,48].includes(code)) return 'cloudy.png';                   // fog
   if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return 'rain.png';  // drizzle/rain/showers
-  if ([71,73,75,77,85,86].includes(code)) return 'snow.png';          // snow
-  if ([95,96,99].includes(code)) return 'rain.png';                   // t-storms fallback
+  if ([71,73,75,77,85,86].includes(code)) return 'snow.png';         // snow
+  if ([95,96,99].includes(code)) return 'rain.png';                  // t-storms fallback
   return 'cloudy.png';
 }
 
@@ -130,77 +135,75 @@ function wxText(code, now=new Date()){
 
 async function loadWeather(){
   try{
-    const j = await (await fetch(WX_URL,{cache:'no-store'})).json();
-    const t = Math.round(j.current.temperature_2m);
-    const code = j.current.weather_code;
+    const j=await (await fetch(WX_URL,{cache:'no-store'})).json();
+    const t=Math.round(j.current.temperature_2m);
+    const code=j.current.weather_code;
 
     const icon = wxIconFile(code);
     const text = wxText(code);
 
-    const el = document.getElementById("weather");
+    const el=document.getElementById("weather");
     el.querySelector(".wx-icon").src = `./${icon}`;
     el.querySelector(".wx-icon").alt = text;
-    el.querySelector(".wx-temp").textContent = t + "°F";
+    el.querySelector(".wx-temp").textContent = t+"°F";
     el.querySelector(".wx-desc").textContent = text;
   }catch{
-    const el = document.getElementById("weather");
-    el.querySelector(".wx-icon").src = '';
-    el.querySelector(".wx-desc").textContent = "Weather unavailable";
+    const el=document.getElementById("weather");
+    el.querySelector(".wx-icon").src='';
+    el.querySelector(".wx-desc").textContent="Weather unavailable";
   }
 }
 
 /* ===== Runner controller (left→right; park; leave) ===== */
 function controlRunner(el, due){
   if(!el) return;
-  const state = el.dataset.state || "idle";
-  const marquee = el.parentElement;
-  const w = marquee.clientWidth;
-  const blockW = el.clientWidth || 120;
-  const start = -200, park = Math.max(0, w - blockW - 6), exit = w + 300;
+  const state=el.dataset.state||"idle";
+  const marquee=el.parentElement;
+  const w=marquee.clientWidth;
+  const blockW=el.clientWidth||120;
+  const start=-200, park=Math.max(0,w-blockW-6), exit=w+300;
 
   function anim(from,to,dur,done){
-    el.style.visibility = "visible";
-    const a = el.animate(
+    el.style.visibility="visible";
+    const a=el.animate(
       [{transform:`translateX(${from}px)`},{transform:`translateX(${to}px)`}],
       {duration:dur,easing:"linear",fill:"forwards"}
     );
-    a.onfinish = () => { el.style.transform = `translateX(${to}px)`; done && done(); };
+    a.onfinish=()=>{el.style.transform=`translateX(${to}px)`;done&&done();};
   }
 
   if(due){
-    if(state === "idle" || state === "leaving"){
-      el.dataset.state = "arriving";
+    if(state==="idle"||state==="leaving"){
+      el.dataset.state="arriving";
       anim(start,park,1500,()=>el.dataset.state="parked");
     }
-  } else if (state === "parked"){
-    el.dataset.state = "leaving";
+  } else if (state==="parked"){
+    el.dataset.state="leaving";
     anim(park,exit,900,()=>{
-      el.dataset.state = "idle";
-      el.style.visibility = "hidden";
-      el.style.transform = `translateX(${start}px)`;
+      el.dataset.state="idle";
+      el.style.visibility="hidden";
+      el.style.transform=`translateX(${start}px)`;
     });
   }
 }
 
 async function fetchJSON(url){
-  const r = await fetch(url,{cache:'no-store'});
-  if(!r.ok) throw 0;
-  return r.json();
+  const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw 0; return r.json();
 }
 
 /* Renders */
 function renderList(rows, target, runner){
-  const el = document.querySelector(target);
+  const el=document.querySelector(target);
   if(!rows.length){
-    el.innerHTML = `<div class="row empty">No predictions</div>`;
+    el.innerHTML=`<div class="row empty">No predictions</div>`;
     controlRunner(document.querySelector(runner), false);
     return;
   }
-  let anyDue = false;
-  el.innerHTML = rows.slice(0,4).map(x=>{
-    const mins = Math.max(0,Math.round((new Date(x.arrT)-new Date())/60000));
-    if(mins <= 1) anyDue = true;
-    const eta = mins <= 1 ? "DUE" : `${mins} min`;
+  let anyDue=false;
+  el.innerHTML=rows.slice(0,4).map(x=>{
+    const mins=Math.max(0,Math.round((new Date(x.arrT)-new Date())/60000));
+    if(mins<=1) anyDue=true;
+    const eta=mins<=1?"DUE":`${mins} min`;
     return `<div class="row ${classify(mins)}">
       <div class="meta">
         <div class="route">Brown Line #${x.rn}</div>
@@ -214,27 +217,27 @@ function renderList(rows, target, runner){
 
 async function loadTrains(){
   try{
-    const data = await fetchJSON("/api/train?mapid=40360");
+    const data=await fetchJSON("/api/train?mapid=40360");
     renderList(data.filter(x=>/Loop/i.test(x.stpDe||"")), "#trainLoopBody", "#trainLoopRun");
     renderList(data.filter(x=>/Kimball/i.test(x.stpDe||"")), "#trainKimballBody", "#trainKimballRun");
   }catch{
-    document.querySelector("#trainLoopBody").innerHTML    = "<div class='row empty'>Error</div>";
-    document.querySelector("#trainKimballBody").innerHTML = "<div class='row empty'>Error</div>";
+    document.querySelector("#trainLoopBody").innerHTML="<div class='row empty'>Error</div>";
+    document.querySelector("#trainKimballBody").innerHTML="<div class='row empty'>Error</div>";
   }
 }
 
 function renderBus(rows, target, runner){
-  const el = document.querySelector(target);
+  const el=document.querySelector(target);
   if(!rows.length){
-    el.innerHTML = `<div class="row empty">No predictions</div>`;
+    el.innerHTML=`<div class="row empty">No predictions</div>`;
     controlRunner(document.querySelector(runner), false);
     return;
   }
-  let anyDue = false;
-  el.innerHTML = rows.slice(0,4).map(x=>{
-    const mins = x.prdctdn === "DUE" ? 0 : parseInt(x.prdctdn,10);
-    if(mins <= 1) anyDue = true;
-    const eta = mins <= 1 ? "DUE" : `${mins} min`;
+  let anyDue=false;
+  el.innerHTML=rows.slice(0,4).map(x=>{
+    const mins=x.prdctdn==="DUE"?0:parseInt(x.prdctdn,10);
+    if(mins<=1) anyDue=true;
+    const eta=mins<=1?"DUE":`${mins} min`;
     return `<div class="row ${classify(mins)} bus-row">
       <div class="meta">
         <div class="route">#77 Vehicle ${x.vid}</div>
@@ -248,29 +251,25 @@ function renderBus(rows, target, runner){
 
 async function loadBuses(){
   try{
-    const [east,west] = await Promise.all([
+    const [east,west]=await Promise.all([
       fetchJSON("/api/bus?stpid=17833&rt=77"),
       fetchJSON("/api/bus?stpid=14920&rt=77")
     ]);
     renderBus(east.rows||[], "#busEastBody", "#busEastRun");
     renderBus(west.rows||[], "#busWestBody", "#busWestRun");
   }catch{
-    document.querySelector("#busEastBody").innerHTML = "<div class='row empty'>Error</div>";
-    document.querySelector("#busWestBody").innerHTML = "<div class='row empty'>Error</div>";
+    document.querySelector("#busEastBody").innerHTML="<div class='row empty'>Error</div>";
+    document.querySelector("#busWestBody").innerHTML="<div class='row empty'>Error</div>";
   }
 }
 
 /* cadence */
-async function refresh(){
-  await Promise.all([loadTrains(), loadBuses()]);
-  setStamp();
-}
+async function refresh(){ await Promise.all([loadTrains(), loadBuses()]); setStamp(); }
 refresh();
-setInterval(refresh, 20000);
+setInterval(refresh,20000);
 loadWeather();
-setInterval(loadWeather, 300000);
+setInterval(loadWeather,300000);
 
-/* ===== SONOS Now Playing ===== */
 async function loadNowPlaying(){
   try{
     const r = await fetch('/api/sonos/now-playing', { cache:'no-store' });
@@ -295,6 +294,7 @@ async function loadNowPlaying(){
         art.style.display = 'none';
       }
 
+      // Optional progress support (positionMs / durationMs from your API)
       if (Number.isFinite(j.positionMs) && Number.isFinite(j.durationMs) && j.durationMs > 0){
         const pct = Math.max(0, Math.min(100, (j.positionMs / j.durationMs) * 100));
         fill.style.width = pct.toFixed(1) + '%';
@@ -313,8 +313,12 @@ async function loadNowPlaying(){
   }
 }
 
+
 loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
+
+
+
 </script>
 
 </body>
