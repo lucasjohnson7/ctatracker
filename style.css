@@ -235,7 +235,7 @@ header{
 /* when JS adds .scrolling, animate horizontally with small delay */
 .np-title.scrolling span,
 .np-artist.scrolling span{
-  animation: np-scroll 12s linear infinite;
+  animation: np-scroll 5s linear infinite;
   animation-delay: 2s;  /* pause before scrolling */
 }
 
