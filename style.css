@@ -164,10 +164,13 @@ header{
 
 .bottom-row{
   display:flex;
-  gap:24px;
   align-items:flex-start;
-  margin-top:8px;
+  gap:24px;
+
+  /* NEW */
+  justify-content:space-between;
 }
+
 
 /* Lock-screen style Now Playing – album art on top, centered */
 .nowplaying {
