@@ -268,13 +268,14 @@ header{
   transition: width .4s ease;
 }
 
-/* Right side container: Weather + Date/Time */
+/* Right side container: Weather + Date/Time (side by side) */
 .info-right{
   flex:0 0 auto;
   display:flex;
-  flex-direction:column;
+  flex-direction:row;
   gap:8px;
 }
+
 
 /* Weather: fixed-size card so it doesn’t jump */
 .weather{
@@ -334,13 +335,13 @@ header{
 }
 
 .dt-date{
-  font-size:18px;
+  font-size:22px;
   font-weight:700;
   opacity:.9;
 }
 
 .dt-time{
-  font-size:26px;
+  font-size:32px;
   font-weight:900;
 }
 
