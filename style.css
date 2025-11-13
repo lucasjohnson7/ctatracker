@@ -204,10 +204,13 @@ header{
   width:100%;
 }
 
+/* base text styles (keep these) */
 .np-title,
 .np-artist{
   --scroll-distance: 0px;
   position: relative;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .np-title span,
@@ -216,17 +219,23 @@ header{
   transform: translateX(0);
 }
 
+/* scrolling state – 8s duration, 4s delay is fine */
 .np-title.scrolling span,
 .np-artist.scrolling span{
   animation: np-scroll 8s linear infinite;
   animation-delay: 4s;
 }
 
+/* Pause at start, then scroll all the way, then pause at end */
 @keyframes np-scroll {
-  0%   { transform: translateX(0); }
-  10%  { transform: translateX(0); }                /* pause */
-  90%  { transform: translateX(calc(-1 * var(--scroll-distance))); }
-  100% { transform: translateX(calc(-1 * var(--scroll-distance))); }
+  0%,
+  15% {
+    transform: translateX(0); /* sit still for a bit */
+  }
+  85%,
+  100% {
+    transform: translateX(calc(-1 * var(--scroll-distance)));
+  }
 }
 
 .np-title{

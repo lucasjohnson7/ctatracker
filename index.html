@@ -272,12 +272,17 @@ function setScrollingText(el, text){
   span.textContent = text || '';
   el.appendChild(span);
 
-  // wait a frame so measurements are correct
+  // wait a frame so layout is correct
   requestAnimationFrame(() => {
-    const overflow = span.scrollWidth - el.clientWidth;
+    const containerWidth = el.clientWidth;
+    const textWidth      = span.scrollWidth;
+    const overflow       = textWidth - containerWidth;
 
-    if (overflow > 8) {                 // only scroll if it actually overflows
-      const distance = overflow + 24;   // small overshoot so the very end is visible
+    // Only scroll if we actually overflow
+    if (overflow > 8) {
+      // BIG overshoot so the very end definitely passes through
+      // - scroll past the “just enough” point by half a container width
+      const distance = overflow + containerWidth * 0.5;
       el.style.setProperty('--scroll-distance', distance + 'px');
       el.classList.add('scrolling');
     }
