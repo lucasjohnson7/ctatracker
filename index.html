@@ -264,7 +264,7 @@ async function loadBuses(){
 /* ===== Scrolling text helper for Now Playing ===== */
 function setScrollingText(el, text){
   // reset
-  el.style.setProperty('--scroll-distance','0px');
+  el.style.setProperty('--scroll-distance', '0px');
   el.classList.remove('scrolling');
   el.innerHTML = '';
 
@@ -272,12 +272,12 @@ function setScrollingText(el, text){
   span.textContent = text || '';
   el.appendChild(span);
 
-  // wait a frame so layout is correct, then measure
+  // wait a frame so measurements are correct
   requestAnimationFrame(() => {
     const overflow = span.scrollWidth - el.clientWidth;
 
-    if (overflow > 8) { // only scroll if it really overflows
-      const distance = overflow + 24; // ⬅️ overshoot a bit for safety
+    if (overflow > 8) {                 // only scroll if it actually overflows
+      const distance = overflow + 24;   // small overshoot so the very end is visible
       el.style.setProperty('--scroll-distance', distance + 'px');
       el.classList.add('scrolling');
     }

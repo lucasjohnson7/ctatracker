@@ -204,15 +204,29 @@ header{
   width:100%;
 }
 
-/* base text styling + scrolling setup */
 .np-title,
 .np-artist{
   --scroll-distance: 0px;
   position: relative;
-  overflow: hidden;
-  white-space: nowrap;
-  text-align: left;      /* ⬅️ add this */
-  margin: 0 auto;        /* keeps it visually centered in the card */
+}
+
+.np-title span,
+.np-artist span{
+  display: inline-block;
+  transform: translateX(0);
+}
+
+.np-title.scrolling span,
+.np-artist.scrolling span{
+  animation: np-scroll 8s linear infinite;
+  animation-delay: 4s;
+}
+
+@keyframes np-scroll {
+  0%   { transform: translateX(0); }
+  10%  { transform: translateX(0); }                /* pause */
+  90%  { transform: translateX(calc(-1 * var(--scroll-distance))); }
+  100% { transform: translateX(calc(-1 * var(--scroll-distance))); }
 }
 
 .np-title{
@@ -221,11 +235,17 @@ header{
   line-height: 1.05;
   letter-spacing: .4px;
   margin: 2px 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .np-artist{
   font-size: clamp(16px, 2.4vw, 22px);
-  opacity:.9;
+  opacity: .9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* the actual scrolling text lives in a span */
