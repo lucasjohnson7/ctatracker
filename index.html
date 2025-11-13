@@ -1,29 +1,17 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" href="style.css" />
-<title>CTA Wall — Southport</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+  <title>CTA Wall — Southport</title>
 </head>
 
 <body>
 
+<!-- Simple top bar: just timestamp on the right -->
 <header>
-  <h1 class="board-title">Southport &<br>Greenview/Belmont</h1>
-
-  <div class="header-right">
-    <!-- Weather (now uses your PNG icons) -->
-    <div class="weather" id="weather">
-  <img class="wx-icon" src="" alt="weather icon" />
-  <div class="weather-info">
-    <span class="wx-temp">--°</span>
-    <span class="wx-desc">Loading...</span>
-  </div>
-</div>
-
-    <div class="timestamp" id="timestamp">Loading…</div>
-  </div>
+  <div class="timestamp" id="timestamp">Loading…</div>
 </header>
 
 <!-- ARRIVAL LISTS (no backgrounds or panels) -->
@@ -59,23 +47,33 @@
 
 </section>
 
-<!-- Lock-screen style Now Playing -->
-<section class="nowplaying" id="nowplaying" aria-live="polite">
-  <img id="npArt" class="np-art" alt="Album art" />
-  <div class="np-meta">
-    <div id="npTitle" class="np-title">Nothing playing</div>
-    <div id="npArtist" class="np-artist">—</div>
-    <div class="np-bar" id="npBar" hidden>
-      <div class="np-bar-fill" id="npFill"></div>
+<!-- Bottom row: Music (left) + Weather (right, fixed size) -->
+<section class="bottom-row">
+  <!-- Lock-screen style Now Playing -->
+  <section class="nowplaying" id="nowplaying" aria-live="polite">
+    <img id="npArt" class="np-art" alt="Album art" />
+    <div class="np-meta">
+      <div id="npTitle" class="np-title">Nothing playing</div>
+      <div id="npArtist" class="np-artist">—</div>
+      <div class="np-bar" id="npBar" hidden>
+        <div class="np-bar-fill" id="npFill"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Weather moved down here, beside music -->
+  <div class="weather-shell">
+    <div class="weather" id="weather">
+      <img class="wx-icon" src="" alt="weather icon" />
+      <div class="weather-info">
+        <span class="wx-temp">--°</span>
+        <span class="wx-desc">Loading...</span>
+      </div>
     </div>
   </div>
 </section>
 
-
 <script>
-
-  
-
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
 const setStamp = ()=> document.getElementById("timestamp").textContent =
   "Updated " + new Date().toLocaleTimeString();
@@ -313,12 +311,8 @@ async function loadNowPlaying(){
   }
 }
 
-
 loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
-
-
-
 </script>
 
 </body>

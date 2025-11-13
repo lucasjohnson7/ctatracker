@@ -31,8 +31,9 @@
   --pill-border:#ffffff33;
 }
 
-/* smooth theme fade */
-html, body { transition: background-color .35s ease, color .35s ease; 
+/* smooth theme fade + hidden scrollbar */
+html, body {
+  transition: background-color .35s ease, color .35s ease; 
   overflow-y: scroll;
   scrollbar-width: none; /* Firefox */
 }
@@ -40,6 +41,7 @@ html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Edge */
 }
+
 body{
   margin:0;
   background:var(--bg);
@@ -53,65 +55,14 @@ body{
   font-size:18px;
 }
 
-/* Header */
+/* Header: timestamp only, right-aligned */
 header{
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:0;
+  align-items:flex-start;
+  justify-content:flex-end;
   margin:0;
   padding:0;
-  margin-bottom:6px;
-}
-
-/* Title */
-.board-title{
-  font-size:clamp(40px, 7vw, 96px);
-  line-height:1.05;
-  font-weight:900;
-  letter-spacing:1.5px;
-  text-transform:uppercase;
-  color:#3b2a1d;
-  margin:0 0 2px 0;
-}
-
-/* --- Weather: big icon above temp+desc side-by-side --- */
-.header-right{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;
-  gap:8px;
-}
-
-.weather{
-  display:flex;
-  flex-direction:column;      /* keep your stacked icon-over-text layout */
-  align-items:center;
-  text-align:center;
-  gap:10px;
-  padding:10px 14px;
-  border-radius:12px;
-  background:var(--pill-bg);
-  border:1px solid var(--pill-border);
-  width:max-content;
-}
-.wx-icon{ width:84px; height:84px; image-rendering:pixelated; }
-.wx-temp{ font-weight:800; font-size:28px; }
-.wx-desc{ opacity:.9; font-size:18px; }
-
-/* row for temp + desc */
-.weather-info {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-/* responsive */
-@media (max-width: 560px) {
-  .wx-icon { width: 64px; height: 64px; }
-  .wx-temp { font-size: 24px; }
-  .wx-desc { font-size: 16px; }
+  margin-bottom:4px;
 }
 
 .timestamp{ opacity:.7; font-size:14px; }
@@ -207,27 +158,38 @@ header{
   font-weight:800;
 }
 
-/* ===== Lock-screen style Now Playing (left half only) ===== */
+/* ===========================
+   Bottom row: Music + Weather
+   =========================== */
+
+.bottom-row{
+  display:flex;
+  gap:24px;
+  align-items:flex-start;
+  margin-top:8px;
+}
+
+/* Lock-screen style Now Playing – album art on top, bigger card */
 .nowplaying {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
   padding: 16px 18px;
   border-radius: 16px;
   background: var(--pill-bg);
   border: 1px solid var(--pill-border);
   box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
-  width: 50%;                    /* takes up left half */
+  width: 50%;             /* left half of screen area */
   max-width: 700px;
   min-width: 420px;
-  margin: 0;                     /* no centering */
-  margin-left: 0;                /* align to left edge */
+  margin: 0;
 }
 
 .np-art{
-  width:140px;
-  height:140px;
-  border-radius:14px;
+  width:160px;
+  height:160px;
+  border-radius:18px;
   object-fit:cover;
   image-rendering:pixelated;
   background:#00000014;
@@ -235,7 +197,10 @@ header{
   display:none;        /* hidden until we have art */
 }
 
-.np-meta{ flex:1 1 auto; min-width:0; }
+.np-meta{
+  flex:1 1 auto;
+  min-width:0;
+}
 
 .np-title{
   font-size: clamp(28px, 4.2vw, 44px);
@@ -275,6 +240,73 @@ header{
 
 /* Compact on small screens */
 @media (max-width: 680px){
-  .nowplaying{ gap:12px; padding:12px 14px; }
-  .np-art{ width:96px; height:96px; border-radius:10px; }
+  .nowplaying{
+    gap:10px;
+    padding:12px 14px;
+    width:100%;
+    min-width:0;
+  }
+  .np-art{
+    width:120px;
+    height:120px;
+    border-radius:12px;
+  }
+}
+
+/* Weather container on the right of music */
+.weather-shell{
+  flex:0 0 auto;
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-start;
+}
+
+/* Weather: fixed-size card so it doesn’t jump */
+.weather{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--pill-bg);
+  border:1px solid var(--pill-border);
+
+  width:230px;        /* fixed size so it stays stable */
+  height:170px;       /* fixed height */
+  box-sizing:border-box;
+}
+
+.wx-icon{
+  width:72px;
+  height:72px;
+  image-rendering:pixelated;
+}
+
+.weather-info {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+.wx-temp{
+  font-weight:800;
+  font-size:26px;
+}
+.wx-desc{
+  opacity:.9;
+  font-size:18px;
+}
+
+/* tweak for very small screens */
+@media (max-width: 680px){
+  .bottom-row{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .weather-shell{
+    margin-top:8px;
+  }
 }
