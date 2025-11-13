@@ -275,8 +275,10 @@ function setScrollingText(el, text){
   // wait a frame so layout is correct, then measure
   requestAnimationFrame(() => {
     const overflow = span.scrollWidth - el.clientWidth;
+
     if (overflow > 8) { // only scroll if it really overflows
-      el.style.setProperty('--scroll-distance', overflow + 'px');
+      const distance = overflow + 24; // ⬅️ overshoot a bit for safety
+      el.style.setProperty('--scroll-distance', distance + 'px');
       el.classList.add('scrolling');
     }
   });

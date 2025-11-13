@@ -211,6 +211,8 @@ header{
   position: relative;
   overflow: hidden;
   white-space: nowrap;
+  text-align: left;      /* ⬅️ add this */
+  margin: 0 auto;        /* keeps it visually centered in the card */
 }
 
 .np-title{
