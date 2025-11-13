@@ -61,7 +61,7 @@
     </div>
   </section>
 
-  <!-- Weather moved down here, beside music -->
+  <!-- Weather beside music -->
   <div class="weather-shell">
     <div class="weather" id="weather">
       <img class="wx-icon" src="" alt="weather icon" />
@@ -261,6 +261,27 @@ async function loadBuses(){
   }
 }
 
+/* ===== Scrolling text helper for Now Playing ===== */
+function setScrollingText(el, text){
+  // reset
+  el.style.setProperty('--scroll-distance','0px');
+  el.classList.remove('scrolling');
+  el.innerHTML = '';
+
+  const span = document.createElement('span');
+  span.textContent = text || '';
+  el.appendChild(span);
+
+  // wait a frame so layout is correct, then measure
+  requestAnimationFrame(() => {
+    const overflow = span.scrollWidth - el.clientWidth;
+    if (overflow > 8) { // only scroll if it really overflows
+      el.style.setProperty('--scroll-distance', overflow + 'px');
+      el.classList.add('scrolling');
+    }
+  });
+}
+
 /* cadence */
 async function refresh(){ await Promise.all([loadTrains(), loadBuses()]); setStamp(); }
 refresh();
@@ -273,16 +294,15 @@ async function loadNowPlaying(){
     const r = await fetch('/api/sonos/now-playing', { cache:'no-store' });
     const j = await r.json();
 
-    const card = document.getElementById('nowplaying');
     const art  = document.getElementById('npArt');
-    const t    = document.getElementById('npTitle');
-    const a    = document.getElementById('npArtist');
+    const titleEl  = document.getElementById('npTitle');
+    const artistEl = document.getElementById('npArtist');
     const bar  = document.getElementById('npBar');
     const fill = document.getElementById('npFill');
 
     if (j.playing){
-      t.textContent = j.title || 'Playing…';
-      a.textContent = [j.artist, j.album].filter(Boolean).join(' — ') || '—';
+      setScrollingText(titleEl, j.title || 'Playing…');
+      setScrollingText(artistEl, [j.artist, j.album].filter(Boolean).join(' — ') || '—');
 
       if (j.image) {
         art.src = j.image;
@@ -301,8 +321,8 @@ async function loadNowPlaying(){
         bar.hidden = true;
       }
     } else {
-      t.textContent = 'Nothing playing';
-      a.textContent = '';
+      setScrollingText(titleEl, 'Nothing playing');
+      setScrollingText(artistEl, '');
       art.style.display = 'none';
       bar.hidden = true;
     }
@@ -311,6 +331,8 @@ async function loadNowPlaying(){
   }
 }
 
+refresh();
+loadWeather();
 loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
 </script>

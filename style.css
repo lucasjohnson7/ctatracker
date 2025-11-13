@@ -169,11 +169,12 @@ header{
   margin-top:8px;
 }
 
-/* Lock-screen style Now Playing – album art on top, bigger card */
+/* Lock-screen style Now Playing – album art on top, centered */
 .nowplaying {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;     /* center art + text */
+  text-align: center;
   gap: 12px;
   padding: 16px 18px;
   border-radius: 16px;
@@ -187,8 +188,8 @@ header{
 }
 
 .np-art{
-  width:160px;
-  height:160px;
+  width:200px;
+  height:200px;
   border-radius:18px;
   object-fit:cover;
   image-rendering:pixelated;
@@ -200,6 +201,16 @@ header{
 .np-meta{
   flex:1 1 auto;
   min-width:0;
+  width:100%;
+}
+
+/* base text styling + scrolling setup */
+.np-title,
+.np-artist{
+  --scroll-distance: 0px;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .np-title{
@@ -208,17 +219,31 @@ header{
   line-height: 1.05;
   letter-spacing: .4px;
   margin: 2px 0 6px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
 }
 
 .np-artist{
   font-size: clamp(16px, 2.4vw, 22px);
   opacity:.9;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+}
+
+/* the actual scrolling text lives in a span */
+.np-title span,
+.np-artist span{
+  display:inline-block;
+}
+
+/* when JS adds .scrolling, animate horizontally with small delay */
+.np-title.scrolling span,
+.np-artist.scrolling span{
+  animation: np-scroll 12s linear infinite;
+  animation-delay: 2s;  /* pause before scrolling */
+}
+
+@keyframes np-scroll{
+  0%   { transform: translateX(0); }
+  10%  { transform: translateX(0); }
+  90%  { transform: translateX(calc(-1 * var(--scroll-distance))); }
+  100% { transform: translateX(calc(-1 * var(--scroll-distance))); }
 }
 
 /* subtle progress bar */
@@ -228,6 +253,7 @@ header{
   border-radius:999px;
   background: rgba(0,0,0,.12);
   overflow:hidden;
+  width:100%;
 }
 :root.night .np-bar{ background: rgba(255,255,255,.18); }
 
@@ -247,8 +273,8 @@ header{
     min-width:0;
   }
   .np-art{
-    width:120px;
-    height:120px;
+    width:140px;
+    height:140px;
     border-radius:12px;
   }
 }
