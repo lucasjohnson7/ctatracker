@@ -83,11 +83,32 @@
     <!-- Sports card (wide, under both) -->
     <div class="sports-card" id="sportsCard">
       <div class="sports-title">Sports</div>
-      <div class="sports-line" id="sportsLine1">Loading…</div>
-      <div class="sports-line" id="sportsLine2"></div>
-      <div class="sports-line" id="sportsLine3"></div>
+
+      <div class="sports-team" id="sports-creighton">
+        <img class="sports-logo" src="./creighton.png" alt="Creighton Bluejays logo">
+        <div class="sports-text">
+          <div class="sports-name">Creighton Bluejays</div>
+          <div class="sports-status">Loading…</div>
+        </div>
+      </div>
+
+      <div class="sports-team" id="sports-bulls">
+        <img class="sports-logo" src="./bulls.png" alt="Chicago Bulls logo">
+        <div class="sports-text">
+          <div class="sports-name">Chicago Bulls</div>
+          <div class="sports-status">Loading…</div>
+        </div>
+      </div>
+
+      <div class="sports-team" id="sports-bears">
+        <img class="sports-logo" src="./bears.png" alt="Chicago Bears logo">
+        <div class="sports-text">
+          <div class="sports-name">Chicago Bears</div>
+          <div class="sports-status">Loading…</div>
+        </div>
+      </div>
     </div>
-  </div>
+
 </section>
 
 <script>
@@ -319,21 +340,113 @@ function setScrollingText(el, text){
 }
 
 /* ===== Sports card (placeholder data for now) ===== */
-function loadSports(){
-  const examples = [
-    'Bulls @ Knicks — 7:00 PM',
-    'Blackhawks 3  •  Wild 2 (F)',
-    'Bears vs Lions — Sun 12:00 PM'
-  ];
-  const l1 = document.getElementById('sportsLine1');
-  const l2 = document.getElementById('sportsLine2');
-  const l3 = document.getElementById('sportsLine3');
+/* ===== Sports card (Creighton / Bulls / Bears) ===== */
 
-  if (!l1) return;
-  l1.textContent = examples[0] || '';
-  l2.textContent = examples[1] || '';
-  l3.textContent = examples[2] || '';
+const SPORTS_TEAMS = [
+  {
+    id: 'sports-creighton',
+    label: 'Creighton Bluejays',
+    logo: './creighton.png',
+    key: 'creighton'     // used by your /api/sports backend
+  },
+  {
+    id: 'sports-bulls',
+    label: 'Chicago Bulls',
+    logo: './bulls.png',
+    key: 'bulls'
+  },
+  {
+    id: 'sports-bears',
+    label: 'Chicago Bears',
+    logo: './bears.png',
+    key: 'bears'
+  }
+];
+
+// Expected backend JSON from /api/sports?team=<key>:
+//
+// {
+//   "live": {
+//     "opponentName": "Lions",
+//     "opponentLogo": "/logos/lions.png",
+//     "usScore": 17,
+//     "themScore": 24,
+//     "period": "Q4",
+//     "clock": "3:21",
+//     "homeAway": "vs"   // or "@"
+//   },
+//   "next": {
+//     "opponentName": "Lions",
+//     "opponentLogo": "/logos/lions.png",
+//     "date": "Sun 11/17",
+//     "time": "12:00 PM"
+//   }
+// }
+
+async function fetchTeamStatus(team){
+  try{
+    // TODO: implement this endpoint in your backend
+    const res = await fetch(`/api/sports?team=${encodeURIComponent(team.key)}`, {
+      cache: 'no-store'
+    });
+
+    if (!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    updateSportsRow(team, data);
+  } catch(e){
+    console.error('sports error', team.key, e);
+    // fallback – just show name, no status
+    updateSportsRow(team, null);
+  }
 }
+
+function updateSportsRow(team, data){
+  const row = document.getElementById(team.id);
+  if (!row) return;
+
+  const logoEl   = row.querySelector('.sports-logo');
+  const nameEl   = row.querySelector('.sports-name');
+  const statusEl = row.querySelector('.sports-status');
+
+  if (logoEl && team.logo) logoEl.src = team.logo;
+  if (nameEl) nameEl.textContent = team.label;
+
+  // If backend returned info:
+  if (data && data.live){
+    const g = data.live;
+    const opp = g.opponentName || 'Opponent';
+    const us  = Number.isFinite(g.usScore)   ? g.usScore   : '-';
+    const them= Number.isFinite(g.themScore) ? g.themScore : '-';
+    const per = g.period || '';
+    const clk = g.clock  || '';
+
+    statusEl.textContent =
+      `${g.homeAway || 'vs'} ${opp} — ${us}–${them}` +
+      (per || clk ? ` (${[per, clk].filter(Boolean).join(' ')})` : '');
+
+    if (g.opponentLogo && logoEl){
+      // Optional: show opponent logo instead of team logo when live
+      logoEl.src = g.opponentLogo;
+    }
+  } else if (data && data.next){
+    const n = data.next;
+    const opp = n.opponentName || 'Opponent';
+    const date = n.date || '';
+    const time = n.time || '';
+    statusEl.textContent =
+      `Next: ${'vs'} ${opp}` + (date || time ? ` — ${[date, time].filter(Boolean).join(' ')}` : '');
+  } else {
+    statusEl.textContent = 'No game info.';
+  }
+}
+
+function loadSports(){
+  SPORTS_TEAMS.forEach(fetchTeamStatus);
+}
+
+// refresh periodically (e.g. every 2 min)
+setInterval(loadSports, 120000);
+
 
 /* cadence */
 async function refresh(){

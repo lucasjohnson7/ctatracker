@@ -357,10 +357,35 @@ header{
   letter-spacing:.08em;
   text-transform:uppercase;
 }
+.sports-team{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:4px 0;
+}
 
-.sports-line{
+.sports-logo{
+  width:32px;
+  height:32px;
+  flex:0 0 auto;
+  object-fit:contain;
+  image-rendering:pixelated;
+}
+
+.sports-text{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.sports-name{
   font-size:14px;
-  line-height:1.4;
+  font-weight:700;
+}
+
+.sports-status{
+  font-size:13px;
+  opacity:.85;
 }
 
 /* Compact on small screens */
