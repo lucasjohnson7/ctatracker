@@ -452,12 +452,15 @@ function updateSportsRow(team, data){
   line1El.textContent = 'No game today.';
   line2El.textContent = '';
 
+  // If we got nothing back at all, just show our team logo/name on left
   if (!data || (!data.live && !data.next)){
-    // fallback – just show our team on one side
     awayNameEl.textContent = team.label;
-    homeNameEl.textContent = '';
-    if (awayLogoEl) awayLogoEl.src = team.logo || '';
-    if (homeLogoEl) homeLogoEl.src = team.logo || '';
+    if (awayLogoEl && team.logo){
+      awayLogoEl.src = team.logo;
+    }
+    if (homeLogoEl){
+      homeLogoEl.removeAttribute('src');
+    }
     return;
   }
 
@@ -489,10 +492,14 @@ function updateSportsRow(team, data){
   homeNameEl.textContent = homeName;
 
   if (awayLogoEl){
-    awayLogoEl.src = awayLogo || (awayName === ourName ? ourLogo : '');
+    const resolvedAwayLogo = awayLogo || (awayName === ourName ? ourLogo : '');
+    if (resolvedAwayLogo) awayLogoEl.src = resolvedAwayLogo;
+    else awayLogoEl.removeAttribute('src');
   }
   if (homeLogoEl){
-    homeLogoEl.src = homeLogo || (homeName === ourName ? ourLogo : '');
+    const resolvedHomeLogo = homeLogo || (homeName === ourName ? ourLogo : '');
+    if (resolvedHomeLogo) homeLogoEl.src = resolvedHomeLogo;
+    else homeLogoEl.removeAttribute('src');
   }
 
   if (live){

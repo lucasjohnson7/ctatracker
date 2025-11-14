@@ -27,6 +27,9 @@ const ESPN_NFL_SCOREBOARD =
 const ESPN_NCAAM_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard";
 
+// >>> Central time zone for ALL formatting <<<
+const TIME_ZONE = "America/Chicago";
+
 async function fetchEspnScoreboard(url) {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
@@ -76,15 +79,20 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
   const usScore = parseInt(us.score, 10);
   const themScore = parseInt(them.score, 10);
 
+  // ESPN `event.date` is UTC; we format it explicitly in Central time.
   const dateObj = new Date(event.date);
+
   const dateText = dateObj.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone: TIME_ZONE,
   });
+
   const timeText = dateObj.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: TIME_ZONE,
   });
 
   const teamInfo = them.team || {};
@@ -163,11 +171,13 @@ function findNextFromSchedule(schedule) {
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone: TIME_ZONE,
   });
 
   const timeStr = next.dateObj.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: TIME_ZONE,
   });
 
   return {
@@ -180,167 +190,167 @@ function findNextFromSchedule(schedule) {
 }
 
 /* ===========================
-   SCHEDULE DATA
+   SCHEDULE DATA (all with -06:00)
    =========================== */
 
 // Small Bulls schedule for fallback when ESPN has no game today.
-// (Add more games here whenever you want.)
 const BULLS_SCHEDULE = [
   {
-    date: "2025-11-16T17:00:00",
+    date: "2025-11-16T17:00:00-06:00",
     opponentName: "Utah Jazz",
     homeAway: "@",
+    // opponentLogo: "https://a.espncdn.com/i/teamlogos/nba/500/uta.png",
   },
   {
-    date: "2025-11-17T18:00:00",
+    date: "2025-11-17T18:00:00-06:00",
     opponentName: "Denver Nuggets",
     homeAway: "@",
   },
   {
-    date: "2025-11-19T19:00:00",
+    date: "2025-11-19T19:00:00-06:00",
     opponentName: "Portland Trail Blazers",
     homeAway: "@",
   },
   {
-    date: "2025-11-21T19:00:00",
+    date: "2025-11-21T19:00:00-06:00",
     opponentName: "Miami Heat",
     homeAway: "vs",
   },
   {
-    date: "2025-11-22T19:00:00",
+    date: "2025-11-22T19:00:00-06:00",
     opponentName: "Miami Heat",
     homeAway: "vs",
   },
 ];
 
-// All times Central — 2025 Bears (you can tweak later if times change)
+// All times CENTRAL — Bears 2025
 const BEARS_SCHEDULE = [
   {
-    date: "2025-09-08T19:15:00",
+    date: "2025-09-08T19:15:00-06:00",
     opponentName: "Minnesota Vikings",
     homeAway: "vs",
   },
   {
-    date: "2025-09-14T12:00:00",
+    date: "2025-09-14T12:00:00-06:00",
     opponentName: "Detroit Lions",
     homeAway: "@",
   },
   {
-    date: "2025-09-21T15:25:00",
+    date: "2025-09-21T15:25:00-06:00",
     opponentName: "Dallas Cowboys",
     homeAway: "vs",
   },
   {
-    date: "2025-09-28T15:25:00",
+    date: "2025-09-28T15:25:00-06:00",
     opponentName: "Las Vegas Raiders",
     homeAway: "@",
   },
   {
-    date: "2025-10-13T19:15:00",
+    date: "2025-10-13T19:15:00-06:00",
     opponentName: "Washington Commanders",
     homeAway: "@",
   },
   {
-    date: "2025-10-19T12:00:00",
+    date: "2025-10-19T12:00:00-06:00",
     opponentName: "New Orleans Saints",
     homeAway: "vs",
   },
   {
-    date: "2025-10-26T12:00:00",
+    date: "2025-10-26T12:00:00-06:00",
     opponentName: "Baltimore Ravens",
     homeAway: "@",
   },
   {
-    date: "2025-11-02T12:00:00",
+    date: "2025-11-02T12:00:00-06:00",
     opponentName: "Cincinnati Bengals",
     homeAway: "@",
   },
   {
-    date: "2025-11-09T12:00:00",
+    date: "2025-11-09T12:00:00-06:00",
     opponentName: "New York Giants",
     homeAway: "vs",
   },
   {
-    date: "2025-11-16T12:00:00",
+    date: "2025-11-16T12:00:00-06:00",
     opponentName: "Minnesota Vikings",
     homeAway: "@",
   },
   {
-    date: "2025-11-23T12:00:00",
+    date: "2025-11-23T12:00:00-06:00",
     opponentName: "Pittsburgh Steelers",
     homeAway: "vs",
   },
   {
-    date: "2025-11-28T14:00:00",
+    date: "2025-11-28T14:00:00-06:00",
     opponentName: "Philadelphia Eagles",
     homeAway: "@",
   },
   {
-    date: "2025-12-07T12:00:00",
+    date: "2025-12-07T12:00:00-06:00",
     opponentName: "Green Bay Packers",
     homeAway: "@",
   },
   {
-    date: "2025-12-14T12:00:00",
+    date: "2025-12-14T12:00:00-06:00",
     opponentName: "Cleveland Browns",
     homeAway: "vs",
   },
   {
-    date: "2025-12-20T12:00:00",
+    date: "2025-12-20T12:00:00-06:00",
     opponentName: "Green Bay Packers",
     homeAway: "vs",
   },
   {
-    date: "2025-12-28T19:20:00",
+    date: "2025-12-28T19:20:00-06:00",
     opponentName: "San Francisco 49ers",
     homeAway: "@",
   },
   {
-    date: "2026-01-03T12:00:00",
+    date: "2026-01-03T12:00:00-06:00",
     opponentName: "Detroit Lions",
     homeAway: "vs",
   },
 ];
 
-// Partial Creighton 2025–26 MBB schedule (you can extend it)
+// Partial Creighton 2025–26 MBB schedule (Central, explicit offset)
 const CREIGHTON_SCHEDULE = [
   {
-    date: "2025-11-05T20:00:00",
+    date: "2025-11-05T20:00:00-06:00",
     opponentName: "South Dakota",
     homeAway: "vs",
   },
   {
-    date: "2025-11-11T22:00:00",
+    date: "2025-11-11T22:00:00-06:00",
     opponentName: "Gonzaga",
     homeAway: "@",
   },
   {
-    date: "2025-11-14T20:00:00",
+    date: "2025-11-14T19:00:00-06:00", // 7:00 PM CT vs MES
     opponentName: "Maryland Eastern Shore",
     homeAway: "vs",
   },
   {
-    date: "2025-11-19T20:00:00",
+    date: "2025-11-19T20:00:00-06:00",
     opponentName: "North Dakota",
     homeAway: "vs",
   },
   {
-    date: "2025-11-24T14:00:00",
+    date: "2025-11-24T14:00:00-06:00",
     opponentName: "Baylor",
     homeAway: "vs", // neutral in Vegas
   },
   {
-    date: "2025-11-25T14:00:00",
+    date: "2025-11-25T14:00:00-06:00",
     opponentName: "Iowa State",
     homeAway: "vs", // neutral
   },
   {
-    date: "2025-12-02T21:00:00",
+    date: "2025-12-02T21:00:00-06:00",
     opponentName: "Nicholls",
     homeAway: "vs",
   },
   {
-    date: "2025-12-07T17:00:00",
+    date: "2025-12-07T17:00:00-06:00",
     opponentName: "Nebraska",
     homeAway: "@",
   },
@@ -364,10 +374,7 @@ async function getBullsStatus() {
         const name = team.displayName || team.name || "";
         const short =
           team.shortDisplayName || team.abbreviation || "";
-        return (
-          name === "Chicago Bulls" ||
-          short === "CHI"
-        );
+        return name === "Chicago Bulls" || short === "CHI";
       });
     });
 
@@ -377,17 +384,13 @@ async function getBullsStatus() {
         const name = team.displayName || team.name || "";
         const short =
           team.shortDisplayName || team.abbreviation || "";
-        return (
-          name === "Chicago Bulls" ||
-          short === "CHI"
-        );
+        return name === "Chicago Bulls" || short === "CHI";
       });
     }
   } catch (e) {
     console.error("espn bulls error", e);
   }
 
-  // Fallback: static next game
   const next = findNextFromSchedule(BULLS_SCHEDULE);
   if (!next) return { live: null, next: null };
   return { live: null, next };
@@ -407,10 +410,7 @@ async function getBearsStatus() {
         const name = team.displayName || team.name || "";
         const short =
           team.shortDisplayName || team.abbreviation || "";
-        return (
-          name === "Chicago Bears" ||
-          short === "CHI"
-        );
+        return name === "Chicago Bears" || short === "CHI";
       });
     });
 
@@ -420,10 +420,7 @@ async function getBearsStatus() {
         const name = team.displayName || team.name || "";
         const short =
           team.shortDisplayName || team.abbreviation || "";
-        return (
-          name === "Chicago Bears" ||
-          short === "CHI"
-        );
+        return name === "Chicago Bears" || short === "CHI";
       });
     }
   } catch (e) {
@@ -460,10 +457,7 @@ async function getCreightonStatus() {
         const name = team.displayName || team.name || "";
         const short =
           team.shortDisplayName || team.abbreviation || "";
-        return (
-          name.includes("Creighton") ||
-          short === "CREI"
-        );
+        return name.includes("Creighton") || short === "CREI";
       });
     });
 
@@ -473,10 +467,7 @@ async function getCreightonStatus() {
         const name = team.displayName || team.name || "";
         const short =
           team.shortDisplayName || team.abbreviation || "";
-        return (
-          name.includes("Creighton") ||
-          short === "CREI"
-        );
+        return name.includes("Creighton") || short === "CREI";
       });
     }
   } catch (e) {
