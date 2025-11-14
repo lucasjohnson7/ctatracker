@@ -84,31 +84,83 @@
     <div class="sports-card" id="sportsCard">
       <div class="sports-title">Sports</div>
 
-      <div class="sports-team" id="sports-creighton">
-        <img class="sports-logo" src="./creighton.png" alt="Creighton Bluejays logo">
-        <div class="sports-text">
-          <div class="sports-name">Creighton Bluejays</div>
-          <div class="sports-status">Loading…</div>
+      <!-- Creighton row -->
+      <div class="sports-team scorebug" id="sports-creighton">
+        <div class="scorebug-team scorebug-away">
+          <div class="team-inner">
+            <img class="team-logo team-away-logo" alt="">
+            <div class="team-name team-away-name">Away</div>
+          </div>
+          <div class="team-score team-away-score">–</div>
+        </div>
+
+        <div class="scorebug-center">
+          <div class="scorebug-center-top">@</div>
+          <div class="scorebug-center-line1">Loading…</div>
+          <div class="scorebug-center-line2"></div>
+        </div>
+
+        <div class="scorebug-team scorebug-home">
+          <div class="team-score team-home-score">–</div>
+          <div class="team-inner">
+            <img class="team-logo team-home-logo" alt="">
+            <div class="team-name team-home-name">Home</div>
+          </div>
         </div>
       </div>
 
-      <div class="sports-team" id="sports-bulls">
-        <img class="sports-logo" src="./bulls.png" alt="Chicago Bulls logo">
-        <div class="sports-text">
-          <div class="sports-name">Chicago Bulls</div>
-          <div class="sports-status">Loading…</div>
+      <!-- Bulls row -->
+      <div class="sports-team scorebug" id="sports-bulls">
+        <div class="scorebug-team scorebug-away">
+          <div class="team-inner">
+            <img class="team-logo team-away-logo" alt="">
+            <div class="team-name team-away-name">Away</div>
+          </div>
+          <div class="team-score team-away-score">–</div>
+        </div>
+
+        <div class="scorebug-center">
+          <div class="scorebug-center-top">@</div>
+          <div class="scorebug-center-line1">Loading…</div>
+          <div class="scorebug-center-line2"></div>
+        </div>
+
+        <div class="scorebug-team scorebug-home">
+          <div class="team-score team-home-score">–</div>
+          <div class="team-inner">
+            <img class="team-logo team-home-logo" alt="">
+            <div class="team-name team-home-name">Home</div>
+          </div>
         </div>
       </div>
 
-      <div class="sports-team" id="sports-bears">
-        <img class="sports-logo" src="./bears.png" alt="Chicago Bears logo">
-        <div class="sports-text">
-          <div class="sports-name">Chicago Bears</div>
-          <div class="sports-status">Loading…</div>
+      <!-- Bears row -->
+      <div class="sports-team scorebug" id="sports-bears">
+        <div class="scorebug-team scorebug-away">
+          <div class="team-inner">
+            <img class="team-logo team-away-logo" alt="">
+            <div class="team-name team-away-name">Away</div>
+          </div>
+          <div class="team-score team-away-score">–</div>
+        </div>
+
+        <div class="scorebug-center">
+          <div class="scorebug-center-top">@</div>
+          <div class="scorebug-center-line1">Loading…</div>
+          <div class="scorebug-center-line2"></div>
+        </div>
+
+        <div class="scorebug-team scorebug-home">
+          <div class="team-score team-home-score">–</div>
+          <div class="team-inner">
+            <img class="team-logo team-home-logo" alt="">
+            <div class="team-name team-home-name">Home</div>
+          </div>
         </div>
       </div>
     </div>
 
+  </div>
 </section>
 
 <script>
@@ -339,15 +391,14 @@ function setScrollingText(el, text){
   });
 }
 
-/* ===== Sports card (placeholder data for now) ===== */
-/* ===== Sports card (Creighton / Bulls / Bears) ===== */
+/* ===== Sports card (Creighton / Bulls / Bears — scorebug layout) ===== */
 
 const SPORTS_TEAMS = [
   {
     id: 'sports-creighton',
     label: 'Creighton Bluejays',
     logo: './creighton.png',
-    key: 'creighton'     // used by your /api/sports backend
+    key: 'creighton'
   },
   {
     id: 'sports-bulls',
@@ -363,80 +414,131 @@ const SPORTS_TEAMS = [
   }
 ];
 
-// Expected backend JSON from /api/sports?team=<key>:
-//
-// {
-//   "live": {
-//     "opponentName": "Lions",
-//     "opponentLogo": "/logos/lions.png",
-//     "usScore": 17,
-//     "themScore": 24,
-//     "period": "Q4",
-//     "clock": "3:21",
-//     "homeAway": "vs"   // or "@"
-//   },
-//   "next": {
-//     "opponentName": "Lions",
-//     "opponentLogo": "/logos/lions.png",
-//     "date": "Sun 11/17",
-//     "time": "12:00 PM"
-//   }
-// }
-
-async function fetchTeamStatus(team){
-  try{
-    // TODO: implement this endpoint in your backend
-    const res = await fetch(`/api/sports?team=${encodeURIComponent(team.key)}`, {
-      cache: 'no-store'
-    });
-
-    if (!res.ok) throw new Error('bad status');
-    const data = await res.json();
-    updateSportsRow(team, data);
-  } catch(e){
-    console.error('sports error', team.key, e);
-    // fallback – just show name, no status
-    updateSportsRow(team, null);
+// Turn "Sun, Nov 16" into "TODAY" or "11/16" when we can
+function formatDateLabel(dateText){
+  if (!dateText) return '';
+  const today = new Date();
+  const guess = new Date(dateText + ' ' + today.getFullYear());
+  if (!isNaN(guess.getTime())){
+    const sameDay =
+      guess.getMonth() === today.getMonth() &&
+      guess.getDate() === today.getDate();
+    if (sameDay) return 'TODAY';
+    const m = guess.getMonth() + 1;
+    const d = guess.getDate();
+    return `${m}/${d}`;
   }
+  return dateText;
 }
 
 function updateSportsRow(team, data){
   const row = document.getElementById(team.id);
   if (!row) return;
 
-  const logoEl   = row.querySelector('.sports-logo');
-  const nameEl   = row.querySelector('.sports-name');
-  const statusEl = row.querySelector('.sports-status');
+  const awayLogoEl = row.querySelector('.team-away-logo');
+  const homeLogoEl = row.querySelector('.team-home-logo');
+  const awayNameEl = row.querySelector('.team-away-name');
+  const homeNameEl = row.querySelector('.team-home-name');
+  const awayScoreEl = row.querySelector('.team-away-score');
+  const homeScoreEl = row.querySelector('.team-home-score');
+  const line1El = row.querySelector('.scorebug-center-line1');
+  const line2El = row.querySelector('.scorebug-center-line2');
 
-  if (logoEl && team.logo) logoEl.src = team.logo;
-  if (nameEl) nameEl.textContent = team.label;
+  // Defaults
+  awayNameEl.textContent = '';
+  homeNameEl.textContent = '';
+  awayScoreEl.textContent = '–';
+  homeScoreEl.textContent = '–';
+  line1El.textContent = 'No game today.';
+  line2El.textContent = '';
 
-  // If backend returned info:
-  if (data && data.live){
-    const g = data.live;
-    const opp = g.opponentName || 'Opponent';
-    const us  = Number.isFinite(g.usScore)   ? g.usScore   : '-';
-    const them= Number.isFinite(g.themScore) ? g.themScore : '-';
-    const per = g.period || '';
-    const clk = g.clock  || '';
+  if (!data || (!data.live && !data.next)){
+    // fallback – just show our team on one side
+    awayNameEl.textContent = team.label;
+    homeNameEl.textContent = '';
+    if (awayLogoEl) awayLogoEl.src = team.logo || '';
+    if (homeLogoEl) homeLogoEl.src = team.logo || '';
+    return;
+  }
 
-    statusEl.textContent =
-      `${g.homeAway || 'vs'} ${opp} — ${us}–${them}` +
-      (per || clk ? ` (${[per, clk].filter(Boolean).join(' ')})` : '');
+  const live = data.live || null;
+  const next = !live && data.next ? data.next : null;
+  const payload = live || next;
 
-    if (g.opponentLogo && logoEl){
-      // Optional: show opponent logo instead of team logo when live
-      logoEl.src = g.opponentLogo;
-    }
-  } else if (data && data.next){
-    const n = data.next;
-    const opp = n.opponentName || 'Opponent';
-    const date = n.date || '';
-    const time = n.time || '';
-    statusEl.textContent =
-      `Next: ${'vs'} ${opp}` + (date || time ? ` — ${[date, time].filter(Boolean).join(' ')}` : '');
+  const isHome = (payload.homeAway || 'vs') === 'vs'; // from our perspective
+  const ourName = team.label;
+  const ourLogo = team.logo;
+  const oppName = payload.opponentName || 'Opponent';
+  const oppLogo = payload.opponentLogo || '';
+
+  let homeName, homeLogo, awayName, awayLogo;
+
+  if (isHome){
+    homeName = ourName;
+    homeLogo = ourLogo;
+    awayName = oppName;
+    awayLogo = oppLogo;
   } else {
-    statusEl.textContent = 'No game info.';
+    awayName = ourName;
+    awayLogo = ourLogo;
+    homeName = oppName;
+    homeLogo = oppLogo;
+  }
+
+  awayNameEl.textContent = awayName;
+  homeNameEl.textContent = homeName;
+
+  if (awayLogoEl){
+    awayLogoEl.src = awayLogo || (awayName === ourName ? ourLogo : '');
+  }
+  if (homeLogoEl){
+    homeLogoEl.src = homeLogo || (homeName === ourName ? ourLogo : '');
+  }
+
+  if (live){
+    const usScore =
+      typeof live.usScore === 'number' ? live.usScore : null;
+    const themScore =
+      typeof live.themScore === 'number' ? live.themScore : null;
+
+    let homeScore = null;
+    let awayScore = null;
+
+    if (isHome){
+      homeScore = usScore;
+      awayScore = themScore;
+    } else {
+      homeScore = themScore;
+      awayScore = usScore;
+    }
+
+    awayScoreEl.textContent =
+      Number.isFinite(awayScore) ? awayScore : '–';
+    homeScoreEl.textContent =
+      Number.isFinite(homeScore) ? homeScore : '–';
+
+    const statusBits = [live.period, live.clock].filter(Boolean);
+    line1El.textContent = statusBits.join(' ').trim() || 'LIVE';
+    line2El.textContent = '';
+  } else if (next){
+    awayScoreEl.textContent = '–';
+    homeScoreEl.textContent = '–';
+    line1El.textContent = formatDateLabel(next.date);
+    line2El.textContent = next.time || '';
+  }
+}
+
+async function fetchTeamStatus(team){
+  try{
+    const res = await fetch(`/api/sports?team=${encodeURIComponent(team.key)}`, {
+      cache: 'no-store'
+    });
+    if (!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    updateSportsRow(team, data);
+  } catch(e){
+    console.error('sports error', team.key, e);
+    updateSportsRow(team, null);
   }
 }
 
@@ -446,7 +548,6 @@ function loadSports(){
 
 // refresh periodically (e.g. every 2 min)
 setInterval(loadSports, 120000);
-
 
 /* cadence */
 async function refresh(){

@@ -388,6 +388,113 @@ header{
   opacity:.85;
 }
 
+/* === Scorebug layout inside sports card === */
+
+.sports-team.scorebug{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:6px;
+  padding:4px 0;
+  border-top:1px solid rgba(0,0,0,.08);
+}
+:root.night .sports-team.scorebug{
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+.sports-team.scorebug:first-of-type{
+  margin-top:4px;
+}
+
+/* Away / Home columns */
+.scorebug-team{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.team-inner{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+}
+
+.team-logo{
+  width:32px;
+  height:32px;
+  object-fit:contain;
+  image-rendering:pixelated;
+}
+
+.team-name{
+  font-size:12px;
+  font-weight:700;
+  text-align:center;
+  max-width:80px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.team-score{
+  font-size:20px;
+  font-weight:900;
+  min-width:24px;
+  text-align:center;
+}
+
+/* Center block: @ + date/time OR period/clock */
+.scorebug-center{
+  flex:0 0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:0 4px;
+  min-width:72px;
+}
+
+.scorebug-center-top{
+  font-size:14px;
+  font-weight:800;
+  letter-spacing:.12em;
+}
+
+.scorebug-center-line1{
+  font-size:13px;
+  font-weight:700;
+  margin-top:2px;
+}
+
+.scorebug-center-line2{
+  font-size:12px;
+  opacity:.9;
+}
+
+/* Make the whole bug slightly smaller on narrow displays */
+@media (max-width: 680px){
+  .team-logo{
+    width:28px;
+    height:28px;
+  }
+  .team-name{
+    font-size:11px;
+    max-width:68px;
+  }
+  .team-score{
+    font-size:18px;
+  }
+  .scorebug-center-line1{
+    font-size:12px;
+  }
+  .scorebug-center-line2{
+    font-size:11px;
+  }
+}
+
 /* Compact on small screens */
 @media (max-width: 680px){
   .bottom-row{
