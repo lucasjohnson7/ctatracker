@@ -199,27 +199,31 @@ const BULLS_SCHEDULE = [
     date: "2025-11-16T17:00:00-06:00",
     opponentName: "Utah Jazz",
     homeAway: "@",
-    // opponentLogo: "https://a.espncdn.com/i/teamlogos/nba/500/uta.png",
+    opponentLogo: "https://a.espncdn.com/i/teamlogos/nba/500/uta.png",
   },
   {
     date: "2025-11-17T18:00:00-06:00",
     opponentName: "Denver Nuggets",
     homeAway: "@",
+    opponentLogo: "https://a.espncdn.com/i/teamlogos/nba/500/den.png",
   },
   {
     date: "2025-11-19T19:00:00-06:00",
     opponentName: "Portland Trail Blazers",
     homeAway: "@",
+    opponentLogo: "https://a.espncdn.com/i/teamlogos/nba/500/por.png",
   },
   {
     date: "2025-11-21T19:00:00-06:00",
     opponentName: "Miami Heat",
     homeAway: "vs",
+    opponentLogo: "https://a.espncdn.com/i/teamlogos/nba/500/mia.png",
   },
   {
     date: "2025-11-22T19:00:00-06:00",
     opponentName: "Miami Heat",
     homeAway: "vs",
+    opponentLogo: "https://a.espncdn.com/i/teamlogos/nba/500/mia.png",
   },
 ];
 
