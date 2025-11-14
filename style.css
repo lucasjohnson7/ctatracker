@@ -274,10 +274,12 @@ header{
   gap:12px;
 }
 
+/* TOP ROW (weather + datetime) */
 .info-top{
   display:flex;
   flex-direction:row;
-  gap:12px;   /* SAME as .bottom-row gap so spacing is equal */
+  gap:12px;          /* space between the two cards */
+  width:100%;        /* stretch to match sports-card width */
 }
 
 /* Generic card style shared by weather, datetime, sports */
@@ -291,7 +293,7 @@ header{
   box-sizing:border-box;
 }
 
-/* Weather + datetime: fixed size top cards */
+/* Weather + datetime: make them flex so they reach the right edge */
 .weather,
 .datetime-card{
   display:flex;
@@ -301,7 +303,8 @@ header{
   text-align:center;
   gap:10px;
 
-  width:200px;
+  flex:1 1 0;      /* each takes half of the row */
+  width:auto;      /* no fixed width */
   height:170px;
 }
 
