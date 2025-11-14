@@ -390,7 +390,6 @@ function setScrollingText(el, text){
     }
   });
 }
-
 /* ===== Sports card (Creighton / Bulls / Bears — scorebug layout) ===== */
 
 const SPORTS_TEAMS = [
@@ -414,7 +413,10 @@ const SPORTS_TEAMS = [
   }
 ];
 
-// Turn "Sun, Nov 16" into "TODAY" or "11/16" when we can
+// we’ll stash the latest data here keyed by team.key
+const SPORTS_STATE = {};
+
+// Turn "Sun, Nov 16" into "TODAY" or "11/16"
 function formatDateLabel(dateText){
   if (!dateText) return '';
   const today = new Date();
@@ -431,26 +433,49 @@ function formatDateLabel(dateText){
   return dateText;
 }
 
+// sort key: live games first (0), then earliest start time
+function gameSortKey(data){
+  if (!data) return Number.POSITIVE_INFINITY;
+
+  if (data.live) {
+    // LIVE (or just finished) should always float to the top
+    return 0;
+  }
+
+  const n = data.next;
+  if (!n || !n.date) return Number.POSITIVE_INFINITY;
+
+  const today = new Date();
+  const baseYear = today.getFullYear();
+  // n.date is like "Sat, Nov 16", n.time like "7:00 PM"
+  const dateString = `${n.date} ${baseYear} ${n.time || ''}`;
+  const guess = new Date(dateString);
+  if (!isNaN(guess.getTime())) return guess.getTime();
+
+  return Number.POSITIVE_INFINITY;
+}
+
+// Actually paint one row (same logic you already had, just reused)
 function updateSportsRow(team, data){
   const row = document.getElementById(team.id);
   if (!row) return;
 
-  const awayLogoEl = row.querySelector('.team-away-logo');
-  const homeLogoEl = row.querySelector('.team-home-logo');
-  const awayNameEl = row.querySelector('.team-away-name');
-  const homeNameEl = row.querySelector('.team-home-name');
-  const awayScoreEl = row.querySelector('.team-away-score');
-  const homeScoreEl = row.querySelector('.team-home-score');
-  const line1El = row.querySelector('.scorebug-center-line1');
-  const line2El = row.querySelector('.scorebug-center-line2');
+  const awayLogoEl   = row.querySelector('.team-away-logo');
+  const homeLogoEl   = row.querySelector('.team-home-logo');
+  const awayNameEl   = row.querySelector('.team-away-name');
+  const homeNameEl   = row.querySelector('.team-home-name');
+  const awayScoreEl  = row.querySelector('.team-away-score');
+  const homeScoreEl  = row.querySelector('.team-home-score');
+  const line1El      = row.querySelector('.scorebug-center-line1');
+  const line2El      = row.querySelector('.scorebug-center-line2');
 
   // Defaults
-  awayNameEl.textContent = '';
-  homeNameEl.textContent = '';
+  awayNameEl.textContent  = '';
+  homeNameEl.textContent  = '';
   awayScoreEl.textContent = '–';
   homeScoreEl.textContent = '–';
-  line1El.textContent = 'No game today.';
-  line2El.textContent = '';
+  line1El.textContent     = 'No game today.';
+  line2El.textContent     = '';
 
   // If we got nothing back at all, just show our team logo/name on left
   if (!data || (!data.live && !data.next)){
@@ -535,6 +560,34 @@ function updateSportsRow(team, data){
   }
 }
 
+// Use the stored data to:
+//  1) update each row's contents
+//  2) reorder rows by soonest game / live on top
+function renderSportsFromState(){
+  const card = document.getElementById('sportsCard');
+  if (!card) return;
+
+  // Build an ordered array from the state + team list
+  const states = SPORTS_TEAMS.map(team => ({
+    team,
+    data: (SPORTS_STATE[team.key] && SPORTS_STATE[team.key].data) || null
+  }));
+
+  // First, draw each row
+  states.forEach(({team, data}) => updateSportsRow(team, data));
+
+  // Then sort by live/next start time
+  const sorted = states.slice().sort(
+    (a, b) => gameSortKey(a.data) - gameSortKey(b.data)
+  );
+
+  // Re-append rows to the card (keeps title at top)
+  sorted.forEach(({team}) => {
+    const row = document.getElementById(team.id);
+    if (row) card.appendChild(row);
+  });
+}
+
 async function fetchTeamStatus(team){
   try{
     const res = await fetch(`/api/sports?team=${encodeURIComponent(team.key)}`, {
@@ -542,11 +595,13 @@ async function fetchTeamStatus(team){
     });
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
-    updateSportsRow(team, data);
+    SPORTS_STATE[team.key] = { data };
   } catch(e){
     console.error('sports error', team.key, e);
-    updateSportsRow(team, null);
+    SPORTS_STATE[team.key] = { data: null };
   }
+  // After each fetch, redraw + reorder using whatever data we have
+  renderSportsFromState();
 }
 
 function loadSports(){
