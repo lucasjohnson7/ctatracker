@@ -339,79 +339,46 @@ header{
   font-weight:900;
 }
 
-/* Sports card: full width under the two top cards */
+/* ===========================
+   SPORTS SCOREBUG
+   =========================== */
+
+/* Sports card: full width under the two top cards, no title */
 .sports-card{
   display:flex;
   flex-direction:column;
-  align-items:flex-start;
-  justify-content:center;
-  gap:4px;
-  width:100%;         /* span under both weather + date/time */
-  min-height:80px;
-  text-align:left;
+  align-items:stretch;      /* rows span full width */
+  gap:12px;
+  width:100%;
+  padding:16px 18px;
+  border-radius:16px;
+  background:var(--pill-bg);
+  border:1px solid var(--pill-border);
+  box-sizing:border-box;
 }
 
-.sports-title{
-  font-size:20px;
-  font-weight:900;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-}
-.sports-team{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:4px 0;
-}
-
-.sports-logo{
-  width:32px;
-  height:32px;
-  flex:0 0 auto;
-  object-fit:contain;
-  image-rendering:pixelated;
-}
-
-.sports-text{
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-}
-
-.sports-name{
-  font-size:14px;
-  font-weight:700;
-}
-
-.sports-status{
-  font-size:13px;
-  opacity:.85;
-}
-
-/* === Scorebug layout inside sports card === */
-
+/* Row container */
 .sports-team.scorebug{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:12px;
-  margin-top:6px;
-  padding:4px 0;
+  gap:20px;
+  padding:12px 0;
   border-top:1px solid rgba(0,0,0,.08);
 }
 :root.night .sports-team.scorebug{
-  border-top:1px solid rgba(255,255,255,.08);
+  border-top:1px solid rgba(255,255,255,.10);
 }
 
 .sports-team.scorebug:first-of-type{
-  margin-top:4px;
+  border-top:none;
 }
 
 /* Away / Home columns */
 .scorebug-team{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:10px;
   min-width:0;
 }
 
@@ -419,33 +386,36 @@ header{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:2px;
+  gap:4px;
 }
 
+/* Bigger logos */
 .team-logo{
-  width:32px;
-  height:32px;
+  width:48px;
+  height:48px;
   object-fit:contain;
   image-rendering:pixelated;
 }
 
+/* Bigger team names */
 .team-name{
-  font-size:12px;
-  font-weight:700;
+  font-size:16px;
+  font-weight:800;
   text-align:center;
-  max-width:80px;
-  line-height:1.1;
-  white-space:normal;          /* allow wrapping */
+  max-width:110px;
+  line-height:1.15;
+  white-space:normal;
   overflow:hidden;
-  display:-webkit-box;         /* clamp to 2 lines */
+  display:-webkit-box;
   -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
 }
 
+/* Bigger scores */
 .team-score{
-  font-size:20px;
+  font-size:28px;
   font-weight:900;
-  min-width:24px;
+  min-width:32px;
   text-align:center;
 }
 
@@ -456,45 +426,59 @@ header{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  padding:0 4px;
-  min-width:72px;
+  padding:0 10px;
+  min-width:80px;
 }
 
 .scorebug-center-top{
-  font-size:14px;
-  font-weight:800;
+  font-size:18px;
+  font-weight:900;
   letter-spacing:.12em;
 }
 
 .scorebug-center-line1{
-  font-size:13px;
-  font-weight:700;
-  margin-top:2px;
+  font-size:16px;
+  font-weight:800;
+  margin-top:4px;
 }
 
 .scorebug-center-line2{
-  font-size:12px;
+  font-size:14px;
   opacity:.9;
+}
+
+/* Flush alignment: away left, home right */
+.scorebug-away{
+  margin-right:auto;
+}
+
+.scorebug-home{
+  margin-left:auto;
+  justify-content:flex-end;
+}
+
+.scorebug-home .team-inner{
+  align-items:flex-end;
 }
 
 /* Make the whole bug slightly smaller on narrow displays */
 @media (max-width: 680px){
   .team-logo{
-    width:28px;
-    height:28px;
+    width:36px;
+    height:36px;
   }
   .team-name{
-    font-size:11px;
-    max-width:68px;
+    font-size:13px;
+    max-width:90px;
   }
   .team-score{
-    font-size:18px;
+    font-size:22px;
   }
   .scorebug-center-line1{
-    font-size:12px;
+    font-size:13px;
   }
   .scorebug-center-line2{
-    font-size:11px;
+    font-size:12px;
   }
 }
 
