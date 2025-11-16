@@ -56,8 +56,9 @@ const ESPN_BULLS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/chi";
 const ESPN_BEARS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/chi";
+// 🔧 FIXED: use 'crei' (Creighton abbreviation) instead of 'creighton-bluejays'
 const ESPN_CREIGHTON_TEAM =
-  "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/creighton-bluejays";
+  "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/crei";
 
 async function fetchJson(url) {
   const res = await fetch(url, { cache: "no-store" });
@@ -131,8 +132,7 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
 
   let period = "";
   if (typeof periodNumber === "number" && periodNumber > 0) {
-    // Good for NBA/NFL; looks fine for NCAAM too
-    period = `Q${periodNumber}`;
+    period = `Q${periodNumber}`; // good for NBA/NFL; NCAAM is close enough visually
   }
 
   const clock =
@@ -152,10 +152,7 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
   // Opponent info (logo from ESPN)
   const teamInfo = them.team || {};
   const opponentName =
-    teamInfo.displayName ||
-    teamInfo.shortDisplayName ||
-    teamInfo.name ||
-    "Opponent";
+    teamInfo.displayName || teamInfo.shortDisplayName || teamInfo.name || "Opponent";
 
   const opponentLogo =
     Array.isArray(teamInfo.logos) && teamInfo.logos.length
@@ -178,7 +175,7 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
     };
   }
 
-  // FINAL (postgame) — still nice to see the final score
+  // FINAL (postgame)
   if (rawState === "post") {
     return {
       live: {
@@ -194,7 +191,7 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
     };
   }
 
-  // PRE-GAME (upcoming game on that date)
+  // PRE-GAME (upcoming)
   return {
     live: null,
     next: {
@@ -208,83 +205,25 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
 }
 
 /**
- * Generic helper:
- * - fetch team endpoint
- * - look at team.nextEvent
- * - if it contains a full event, use that
- * - if it only has a $ref, follow it and fetch the real event
- * - return { live, next } or null if nothing
+ * From a team JSON (ESPN team endpoint), return the "best" upcoming event
+ * to treat as "next game".
  */
-async function getNextFromTeamEndpoint(teamUrl, isOurTeam) {
-  try {
-    const teamJson = await fetchJson(teamUrl);
-    const team = teamJson.team || {};
-    const arr = team.nextEvent || [];
+function getFirstNextEventFromTeam(teamJson) {
+  const team = teamJson.team || {};
+  const arr = team.nextEvent || [];
 
-    if (!Array.isArray(arr) || !arr.length) return null;
+  if (!Array.isArray(arr) || !arr.length) return null;
 
-    // 1) Prefer entries that already have competitions
-    let event =
-      arr.find((ev) => ev.competitions && ev.competitions.length) || null;
-
-    // 2) Otherwise, follow a $ref link to fetch the real event
-    if (!event) {
-      const first = arr[0] || {};
-      let ref = first.$ref;
-
-      // Sometimes they put links in a "links" array instead
-      if (!ref && Array.isArray(first.links)) {
-        const evtLink = first.links.find(
-          (lnk) =>
-            Array.isArray(lnk.rel) && lnk.rel.some((r) => r.includes("event"))
-        );
-        if (evtLink && evtLink.href) {
-          ref = evtLink.href;
-        }
-      }
-
-      if (ref) {
-        event = await fetchJson(ref);
-      }
-    }
-
-    if (!event) return null;
-
-    return mapEspnEventToLiveNext(event, isOurTeam);
-  } catch (e) {
-    console.error("ESPN team endpoint error", teamUrl, e);
-    return null;
-  }
+  const fullEvent = arr.find((ev) => ev.competitions && ev.competitions.length);
+  return fullEvent || null;
 }
 
 /* ===========================
    TEAM-SPECIFIC HELPERS
    =========================== */
 
-const isBulls = (c) => {
-  const team = c.team || {};
-  const name = team.displayName || team.name || "";
-  const short = team.shortDisplayName || team.abbreviation || "";
-  return name === "Chicago Bulls" || short === "CHI";
-};
-
-const isBears = (c) => {
-  const team = c.team || {};
-  const name = team.displayName || team.name || "";
-  const short = team.shortDisplayName || team.abbreviation || "";
-  return name === "Chicago Bears" || short === "CHI";
-};
-
-const isCreighton = (c) => {
-  const team = c.team || {};
-  const name = team.displayName || team.name || "";
-  const short = team.shortDisplayName || team.abbreviation || "";
-  return name.includes("Creighton") || short === "CREI";
-};
-
 // ---------- Bulls (NBA) ----------
 async function getBullsStatus() {
-  // 1) Today’s game (or live) from NBA scoreboard
   try {
     const sb = await fetchJson(ESPN_NBA_SCOREBOARD);
     const events = sb.events || [];
@@ -292,30 +231,50 @@ async function getBullsStatus() {
     const event = events.find((ev) => {
       const comp = ev.competitions && ev.competitions[0];
       if (!comp || !comp.competitors) return false;
-      return comp.competitors.some(isBulls);
+      return comp.competitors.some((c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name === "Chicago Bulls" || short === "CHI";
+      });
     });
 
     if (event) {
-      return mapEspnEventToLiveNext(event, isBulls);
+      return mapEspnEventToLiveNext(event, (c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name === "Chicago Bulls" || short === "CHI";
+      });
     }
   } catch (e) {
     console.error("ESPN Bulls scoreboard error", e);
   }
 
-  // 2) No game on today’s scoreboard → look at Bulls team endpoint
-  const nextFromTeam = await getNextFromTeamEndpoint(
-    ESPN_BULLS_TEAM,
-    isBulls
-  );
-  if (nextFromTeam) return nextFromTeam;
+  // Team endpoint fallback
+  try {
+    const teamJson = await fetchJson(ESPN_BULLS_TEAM);
+    const nextEvent = getFirstNextEventFromTeam(teamJson);
+    if (nextEvent) {
+      return mapEspnEventToLiveNext(nextEvent, (c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name === "Chicago Bulls" || short === "CHI";
+      });
+    }
+  } catch (e) {
+    console.error("ESPN Bulls team endpoint error", e);
+  }
 
-  // 3) Nothing we can find
   return { live: null, next: null };
 }
 
 // ---------- Bears (NFL) ----------
 async function getBearsStatus() {
-  // 1) Today’s game / live from NFL scoreboard
   try {
     const sb = await fetchJson(ESPN_NFL_SCOREBOARD);
     const events = sb.events || [];
@@ -323,24 +282,45 @@ async function getBearsStatus() {
     const event = events.find((ev) => {
       const comp = ev.competitions && ev.competitions[0];
       if (!comp || !comp.competitors) return false;
-      return comp.competitors.some(isBears);
+      return comp.competitors.some((c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name === "Chicago Bears" || short === "CHI";
+      });
     });
 
     if (event) {
-      return mapEspnEventToLiveNext(event, isBears);
+      return mapEspnEventToLiveNext(event, (c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name === "Chicago Bears" || short === "CHI";
+      });
     }
   } catch (e) {
     console.error("ESPN Bears scoreboard error", e);
   }
 
-  // 2) Fall back to Bears team endpoint for nextEvent
-  const nextFromTeam = await getNextFromTeamEndpoint(
-    ESPN_BEARS_TEAM,
-    isBears
-  );
-  if (nextFromTeam) return nextFromTeam;
+  try {
+    const teamJson = await fetchJson(ESPN_BEARS_TEAM);
+    const nextEvent = getFirstNextEventFromTeam(teamJson);
+    if (nextEvent) {
+      return mapEspnEventToLiveNext(nextEvent, (c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name === "Chicago Bears" || short === "CHI";
+      });
+    }
+  } catch (e) {
+    console.error("ESPN Bears team endpoint error", e);
+  }
 
-  // 3) Truly offseason
+  // Probably offseason
   return {
     live: null,
     next: {
@@ -363,24 +343,46 @@ async function getCreightonStatus() {
     const event = events.find((ev) => {
       const comp = ev.competitions && ev.competitions[0];
       if (!comp || !comp.competitors) return false;
-      return comp.competitors.some(isCreighton);
+      return comp.competitors.some((c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name.includes("Creighton") || short === "CREI";
+      });
     });
 
     if (event) {
-      return mapEspnEventToLiveNext(event, isCreighton);
+      return mapEspnEventToLiveNext(event, (c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name.includes("Creighton") || short === "CREI";
+      });
     }
   } catch (e) {
     console.error("ESPN Creighton scoreboard error", e);
   }
 
   // 2) Fall back to Creighton team endpoint for nextEvent
-  const nextFromTeam = await getNextFromTeamEndpoint(
-    ESPN_CREIGHTON_TEAM,
-    isCreighton
-  );
-  if (nextFromTeam) return nextFromTeam;
+  try {
+    const teamJson = await fetchJson(ESPN_CREIGHTON_TEAM);
+    const nextEvent = getFirstNextEventFromTeam(teamJson);
+    if (nextEvent) {
+      return mapEspnEventToLiveNext(nextEvent, (c) => {
+        const team = c.team || {};
+        const name = team.displayName || team.name || "";
+        const short =
+          team.shortDisplayName || team.abbreviation || "";
+        return name.includes("Creighton") || short === "CREI";
+      });
+    }
+  } catch (e) {
+    console.error("ESPN Creighton team endpoint error", e);
+  }
 
-  // 3) Offseason
+  // 3) If both fail, treat as offseason
   return {
     live: null,
     next: {
