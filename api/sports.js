@@ -1,26 +1,26 @@
 // api/sports.js
 // Vercel Edge Function — Sports for wall display
-// - Bulls: ESPN NBA scoreboard + Bulls team endpoint
-// - Bears: ESPN NFL scoreboard + Bears team endpoint
-// - Creighton MBB: ESPN NCAAM scoreboard + Creighton team endpoint
+// - Bulls: NBA scoreboard + Bulls team endpoint (nextEvent)
+// - Bears: NFL scoreboard + Bears team endpoint (nextEvent)
+// - Creighton MBB: NCAAM scoreboard ONLY (scan forward in time)
 //
-// Shape returned to the browser:
+// Shape returned:
 //
 // {
 //   live: {
-//     opponentName: string,
-//     opponentLogo: string | null,
-//     usScore: number | null,
-//     themScore: number | null,
-//     period: string,     // "Q3", "F", "H1", etc
-//     clock: string,      // "7:45"
+//     opponentName,
+//     opponentLogo,
+//     usScore,
+//     themScore,
+//     period,
+//     clock,
 //     homeAway: "vs" | "@"
 //   } | null,
 //   next: {
-//     opponentName: string,
-//     opponentLogo: string | null,
-//     date: string,       // "Fri, Nov 14"
-//     time: string,       // "7:00 PM"
+//     opponentName,
+//     opponentLogo,
+//     date,   // "Fri, Nov 14"
+//     time,   // "7:00 PM"
 //     homeAway: "vs" | "@"
 //   } | null
 // }
@@ -43,7 +43,7 @@ function json(body, status = 200) {
    ESPN ENDPOINTS
    =========================== */
 
-// Scoreboards (per league, "today")
+// Scoreboards (per league, date-based)
 const ESPN_NBA_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
 const ESPN_NFL_SCOREBOARD =
@@ -51,14 +51,11 @@ const ESPN_NFL_SCOREBOARD =
 const ESPN_NCAAM_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard";
 
-// Team endpoints (for nextEvent / upcoming games)
+// Team endpoints (for Bulls/Bears only)
 const ESPN_BULLS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/chi";
 const ESPN_BEARS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/chi";
-// 🔧 FIXED: use 'crei' (Creighton abbreviation) instead of 'creighton-bluejays'
-const ESPN_CREIGHTON_TEAM =
-  "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/crei";
 
 async function fetchJson(url) {
   const res = await fetch(url, { cache: "no-store" });
@@ -132,19 +129,18 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
 
   let period = "";
   if (typeof periodNumber === "number" && periodNumber > 0) {
-    period = `Q${periodNumber}`; // good for NBA/NFL; NCAAM is close enough visually
+    // Q1–Q4 works visually for NBA / NFL, and is “good enough” for NCAAM
+    period = `Q${periodNumber}`;
   }
 
   const clock =
     (comp.status && comp.status.displayClock) || statusObj.displayClock || "";
 
   // Scores
-  const usScore = Number.isFinite(parseInt(us.score, 10))
-    ? parseInt(us.score, 10)
-    : null;
-  const themScore = Number.isFinite(parseInt(them.score, 10))
-    ? parseInt(them.score, 10)
-    : null;
+  const parsedUs = parseInt(us.score, 10);
+  const parsedThem = parseInt(them.score, 10);
+  const usScore = Number.isFinite(parsedUs) ? parsedUs : null;
+  const themScore = Number.isFinite(parsedThem) ? parsedThem : null;
 
   // Date/time (Central)
   const { dateText, timeText } = formatCentralDateTime(event.date);
@@ -152,7 +148,10 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
   // Opponent info (logo from ESPN)
   const teamInfo = them.team || {};
   const opponentName =
-    teamInfo.displayName || teamInfo.shortDisplayName || teamInfo.name || "Opponent";
+    teamInfo.displayName ||
+    teamInfo.shortDisplayName ||
+    teamInfo.name ||
+    "Opponent";
 
   const opponentLogo =
     Array.isArray(teamInfo.logos) && teamInfo.logos.length
@@ -175,7 +174,7 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
     };
   }
 
-  // FINAL (postgame)
+  // FINAL
   if (rawState === "post") {
     return {
       live: {
@@ -191,7 +190,7 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
     };
   }
 
-  // PRE-GAME (upcoming)
+  // PRE-GAME
   return {
     live: null,
     next: {
@@ -214,8 +213,51 @@ function getFirstNextEventFromTeam(teamJson) {
 
   if (!Array.isArray(arr) || !arr.length) return null;
 
+  // Only accept entries that already have competitions;
+  // skip $ref-only objects so we don't need another fetch.
   const fullEvent = arr.find((ev) => ev.competitions && ev.competitions.length);
   return fullEvent || null;
+}
+
+/**
+ * For Creighton: scan the NCAAM scoreboard from "today" forward N days
+ * and return the first event that involves our team.
+ */
+async function findNextEventForTeamScoreboards(baseUrl, isOurTeam, maxDaysAhead = 30) {
+  const now = new Date();
+
+  for (let offset = 0; offset <= maxDaysAhead; offset++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + offset);
+
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const datesParam = `${y}${m}${day}`;
+
+    const url = `${baseUrl}?dates=${datesParam}`;
+
+    let sb;
+    try {
+      sb = await fetchJson(url);
+    } catch (e) {
+      console.error("ESPN scoreboard range error", url, e);
+      continue; // try next day
+    }
+
+    const events = sb.events || [];
+    const event = events.find((ev) => {
+      const comp = ev.competitions && ev.competitions[0];
+      if (!comp || !comp.competitors) return false;
+      return comp.competitors.some(isOurTeam);
+    });
+
+    if (event) {
+      return event;
+    }
+  }
+
+  return null;
 }
 
 /* ===========================
@@ -224,6 +266,14 @@ function getFirstNextEventFromTeam(teamJson) {
 
 // ---------- Bulls (NBA) ----------
 async function getBullsStatus() {
+  const isBulls = (c) => {
+    const team = c.team || {};
+    const name = team.displayName || team.name || "";
+    const short = team.shortDisplayName || team.abbreviation || "";
+    return name === "Chicago Bulls" || short === "CHI";
+  };
+
+  // 1) Today’s game (or live) from NBA scoreboard
   try {
     const sb = await fetchJson(ESPN_NBA_SCOREBOARD);
     const events = sb.events || [];
@@ -231,50 +281,41 @@ async function getBullsStatus() {
     const event = events.find((ev) => {
       const comp = ev.competitions && ev.competitions[0];
       if (!comp || !comp.competitors) return false;
-      return comp.competitors.some((c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name === "Chicago Bulls" || short === "CHI";
-      });
+      return comp.competitors.some(isBulls);
     });
 
     if (event) {
-      return mapEspnEventToLiveNext(event, (c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name === "Chicago Bulls" || short === "CHI";
-      });
+      return mapEspnEventToLiveNext(event, isBulls);
     }
   } catch (e) {
     console.error("ESPN Bulls scoreboard error", e);
   }
 
-  // Team endpoint fallback
+  // 2) No game on today’s scoreboard → look at Bulls team endpoint for nextEvent
   try {
     const teamJson = await fetchJson(ESPN_BULLS_TEAM);
     const nextEvent = getFirstNextEventFromTeam(teamJson);
     if (nextEvent) {
-      return mapEspnEventToLiveNext(nextEvent, (c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name === "Chicago Bulls" || short === "CHI";
-      });
+      return mapEspnEventToLiveNext(nextEvent, isBulls);
     }
   } catch (e) {
     console.error("ESPN Bulls team endpoint error", e);
   }
 
+  // 3) Nothing we can find
   return { live: null, next: null };
 }
 
 // ---------- Bears (NFL) ----------
 async function getBearsStatus() {
+  const isBears = (c) => {
+    const team = c.team || {};
+    const name = team.displayName || team.name || "";
+    const short = team.shortDisplayName || team.abbreviation || "";
+    return name === "Chicago Bears" || short === "CHI";
+  };
+
+  // 1) Today’s game / live from NFL scoreboard
   try {
     const sb = await fetchJson(ESPN_NFL_SCOREBOARD);
     const events = sb.events || [];
@@ -282,45 +323,28 @@ async function getBearsStatus() {
     const event = events.find((ev) => {
       const comp = ev.competitions && ev.competitions[0];
       if (!comp || !comp.competitors) return false;
-      return comp.competitors.some((c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name === "Chicago Bears" || short === "CHI";
-      });
+      return comp.competitors.some(isBears);
     });
 
     if (event) {
-      return mapEspnEventToLiveNext(event, (c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name === "Chicago Bears" || short === "CHI";
-      });
+      return mapEspnEventToLiveNext(event, isBears);
     }
   } catch (e) {
     console.error("ESPN Bears scoreboard error", e);
   }
 
+  // 2) Fall back to Bears team endpoint for nextEvent
   try {
     const teamJson = await fetchJson(ESPN_BEARS_TEAM);
     const nextEvent = getFirstNextEventFromTeam(teamJson);
     if (nextEvent) {
-      return mapEspnEventToLiveNext(nextEvent, (c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name === "Chicago Bears" || short === "CHI";
-      });
+      return mapEspnEventToLiveNext(nextEvent, isBears);
     }
   } catch (e) {
     console.error("ESPN Bears team endpoint error", e);
   }
 
-  // Probably offseason
+  // 3) Probably offseason
   return {
     live: null,
     next: {
@@ -335,54 +359,29 @@ async function getBearsStatus() {
 
 // ---------- Creighton (NCAAM) ----------
 async function getCreightonStatus() {
-  // 1) Today’s (or live) game from NCAAM scoreboard
+  const isCreighton = (c) => {
+    const team = c.team || {};
+    const name = team.displayName || team.name || "";
+    const short = team.shortDisplayName || team.abbreviation || "";
+    return name.includes("Creighton") || short === "CREI";
+  };
+
+  // Single path for Creighton: scan scoreboards from today forward.
   try {
-    const sb = await fetchJson(ESPN_NCAAM_SCOREBOARD);
-    const events = sb.events || [];
+    const nextEvent = await findNextEventForTeamScoreboards(
+      ESPN_NCAAM_SCOREBOARD,
+      isCreighton,
+      30 // look up to 30 days ahead
+    );
 
-    const event = events.find((ev) => {
-      const comp = ev.competitions && ev.competitions[0];
-      if (!comp || !comp.competitors) return false;
-      return comp.competitors.some((c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name.includes("Creighton") || short === "CREI";
-      });
-    });
-
-    if (event) {
-      return mapEspnEventToLiveNext(event, (c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name.includes("Creighton") || short === "CREI";
-      });
-    }
-  } catch (e) {
-    console.error("ESPN Creighton scoreboard error", e);
-  }
-
-  // 2) Fall back to Creighton team endpoint for nextEvent
-  try {
-    const teamJson = await fetchJson(ESPN_CREIGHTON_TEAM);
-    const nextEvent = getFirstNextEventFromTeam(teamJson);
     if (nextEvent) {
-      return mapEspnEventToLiveNext(nextEvent, (c) => {
-        const team = c.team || {};
-        const name = team.displayName || team.name || "";
-        const short =
-          team.shortDisplayName || team.abbreviation || "";
-        return name.includes("Creighton") || short === "CREI";
-      });
+      return mapEspnEventToLiveNext(nextEvent, isCreighton);
     }
   } catch (e) {
-    console.error("ESPN Creighton team endpoint error", e);
+    console.error("ESPN Creighton scoreboard range error", e);
   }
 
-  // 3) If both fail, treat as offseason
+  // Offseason / no games scheduled in window
   return {
     live: null,
     next: {
