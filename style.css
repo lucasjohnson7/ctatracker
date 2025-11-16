@@ -457,7 +457,7 @@ header{
 }
 
 .scorebug-home .team-inner{
-  align-items:flex-end;
+  align-items: center;   /* center logo + name */
 }
 
 /* Make the whole bug slightly smaller on narrow displays */
