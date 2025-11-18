@@ -296,15 +296,16 @@ async function fetchJSON(url){
 }
 
 /* Renders */
-function renderList(rows, target, runner){
+function renderList(rows, target, runner, maxRows){
   const el=document.querySelector(target);
   if(!rows.length){
     el.innerHTML=`<div class="row empty">No predictions</div>`;
     controlRunner(document.querySelector(runner), false);
     return;
   }
+  const limit = typeof maxRows === 'number' ? maxRows : 4;
   let anyDue=false;
-  el.innerHTML=rows.slice(0,4).map(x=>{
+  el.innerHTML=rows.slice(0,limit).map(x=>{
     const mins=Math.max(0,Math.round((new Date(x.arrT)-new Date())/60000));
     if(mins<=1) anyDue=true;
     const eta=mins<=1?"DUE":`${mins} min`;
@@ -322,23 +323,27 @@ function renderList(rows, target, runner){
 async function loadTrains(){
   try{
     const data=await fetchJSON("/api/train?mapid=40360");
-    renderList(data.filter(x=>/Loop/i.test(x.stpDe||"")), "#trainLoopBody", "#trainLoopRun");
-    renderList(data.filter(x=>/Kimball/i.test(x.stpDe||"")), "#trainKimballBody", "#trainKimballRun");
+    const loopRows    = data.filter(x=>/Loop/i.test(x.stpDe||""));
+    const kimballRows = data.filter(x=>/Kimball/i.test(x.stpDe||""));
+    // limits: Loop = 2, Kimball = 4
+    renderList(loopRows,    "#trainLoopBody",   "#trainLoopRun",   2);
+    renderList(kimballRows, "#trainKimballBody","#trainKimballRun",4);
   }catch{
     document.querySelector("#trainLoopBody").innerHTML="<div class='row empty'>Error</div>";
     document.querySelector("#trainKimballBody").innerHTML="<div class='row empty'>Error</div>";
   }
 }
 
-function renderBus(rows, target, runner){
+function renderBus(rows, target, runner, maxRows){
   const el=document.querySelector(target);
   if(!rows.length){
     el.innerHTML=`<div class="row empty">No predictions</div>`;
     controlRunner(document.querySelector(runner), false);
     return;
   }
+  const limit = typeof maxRows === 'number' ? maxRows : 4;
   let anyDue=false;
-  el.innerHTML=rows.slice(0,4).map(x=>{
+  el.innerHTML=rows.slice(0,limit).map(x=>{
     const mins=x.prdctdn==="DUE"?0:parseInt(x.prdctdn,10);
     if(mins<=1) anyDue=true;
     const eta=mins<=1?"DUE":`${mins} min`;
@@ -359,8 +364,9 @@ async function loadBuses(){
       fetchJSON("/api/bus?stpid=17833&rt=77"),
       fetchJSON("/api/bus?stpid=14920&rt=77")
     ]);
-    renderBus(east.rows||[], "#busEastBody", "#busEastRun");
-    renderBus(west.rows||[], "#busWestBody", "#busWestRun");
+    // limits: 3 each
+    renderBus(east.rows||[], "#busEastBody", "#busEastRun", 3);
+    renderBus(west.rows||[], "#busWestBody", "#busWestRun", 3);
   }catch{
     document.querySelector("#busEastBody").innerHTML="<div class='row empty'>Error</div>";
     document.querySelector("#busWestBody").innerHTML="<div class='row empty'>Error</div>";
@@ -580,7 +586,7 @@ function renderSportsFromState(){
     (a, b) => gameSortKey(a.data) - gameSortKey(b.data)
   );
 
-  // Re-append rows to the card (keeps title at top)
+  // Re-append rows to the card
   sorted.forEach(({team}) => {
     const row = document.getElementById(team.id);
     if (row) card.appendChild(row);
