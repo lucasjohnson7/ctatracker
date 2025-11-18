@@ -167,6 +167,7 @@ header{
   align-items:flex-start;
   gap:12px;                 /* same gap as inside right column */
   justify-content:space-between;
+  align-items: stretch;
 }
 
 /* Lock-screen style Now Playing – album art on top, centered */
