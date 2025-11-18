@@ -172,6 +172,7 @@ header{
 
 /* Lock-screen style Now Playing – album art on top, centered */
 .nowplaying {
+  justify-content: center;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -184,7 +185,6 @@ header{
   box-shadow:0 8px 24px rgba(0,0,0,.08);
   flex:1 1 0;
   min-width:0;
-  justify-content: center;
 }
 
 .np-art{
