@@ -164,19 +164,17 @@ header{
 
 .bottom-row{
   display:flex;
-  align-items:flex-start;
   gap:12px;                 /* same gap as inside right column */
   justify-content:space-between;
-  align-items: stretch;
+  align-items:stretch;      /* make music + right column same height */
 }
 
 /* Lock-screen style Now Playing – album art on top, centered */
 .nowplaying {
-  height: 100%;
-  justify-content: center;
   display:flex;
   flex-direction:column;
   align-items:center;
+  justify-content:center;   /* center art + text vertically */
   text-align:center;
   gap:12px;
   padding:16px 18px;
@@ -184,8 +182,9 @@ header{
   background:var(--pill-bg);
   border:1px solid var(--pill-border);
   box-shadow:0 8px 24px rgba(0,0,0,.08);
-  flex:1 1 0;
+  flex:1 1 0;               /* stretch to match right column */
   min-width:0;
+  /* no height:100% here */
 }
 
 .np-art{
@@ -200,7 +199,7 @@ header{
 }
 
 .np-meta{
-  flex:1 1 auto;
+  flex:0 0 auto;            /* text doesn’t stretch, keeps block nicely centered */
   min-width:0;
   width:100%;
 }
