@@ -2,7 +2,7 @@
 // Vercel Edge Function — Sports for wall display
 // - Bulls: NBA scoreboard + Bulls team endpoint (nextEvent)
 // - Bears: NFL scoreboard + Bears team endpoint (nextEvent)
-// - Creighton MBB: NCAAM scoreboard ONLY (scan forward in time)
+// - Creighton MBB: NCAAM scoreboard for today/live + Creighton team endpoint (nextEvent)
 //
 // Shape returned:
 //
@@ -43,7 +43,7 @@ function json(body, status = 200) {
    ESPN ENDPOINTS
    =========================== */
 
-// Scoreboards (per league, date-based)
+// Scoreboards (per league, "today" when no ?dates param)
 const ESPN_NBA_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
 const ESPN_NFL_SCOREBOARD =
@@ -51,11 +51,14 @@ const ESPN_NFL_SCOREBOARD =
 const ESPN_NCAAM_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard";
 
-// Team endpoints (for Bulls/Bears only)
+// Team endpoints (for Bulls/Bears/Creighton)
 const ESPN_BULLS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/chi";
 const ESPN_BEARS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/chi";
+// Creighton Bluejays MBB team id is 156 on ESPN
+const ESPN_CREIGHTON_TEAM =
+  "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/156";
 
 async function fetchJson(url) {
   const res = await fetch(url, { cache: "no-store" });
@@ -219,47 +222,6 @@ function getFirstNextEventFromTeam(teamJson) {
   return fullEvent || null;
 }
 
-/**
- * For Creighton: scan the NCAAM scoreboard from "today" forward N days
- * and return the first event that involves our team.
- */
-async function findNextEventForTeamScoreboards(baseUrl, isOurTeam, maxDaysAhead = 30) {
-  const now = new Date();
-
-  for (let offset = 0; offset <= maxDaysAhead; offset++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() + offset);
-
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const datesParam = `${y}${m}${day}`;
-
-    const url = `${baseUrl}?dates=${datesParam}`;
-
-    let sb;
-    try {
-      sb = await fetchJson(url);
-    } catch (e) {
-      console.error("ESPN scoreboard range error", url, e);
-      continue; // try next day
-    }
-
-    const events = sb.events || [];
-    const event = events.find((ev) => {
-      const comp = ev.competitions && ev.competitions[0];
-      if (!comp || !comp.competitors) return false;
-      return comp.competitors.some(isOurTeam);
-    });
-
-    if (event) {
-      return event;
-    }
-  }
-
-  return null;
-}
-
 /* ===========================
    TEAM-SPECIFIC HELPERS
    =========================== */
@@ -366,22 +328,36 @@ async function getCreightonStatus() {
     return name.includes("Creighton") || short === "CREI";
   };
 
-  // Single path for Creighton: scan scoreboards from today forward.
+  // 1) Today’s (or live) game from NCAAM scoreboard
   try {
-    const nextEvent = await findNextEventForTeamScoreboards(
-      ESPN_NCAAM_SCOREBOARD,
-      isCreighton,
-      30 // look up to 30 days ahead
-    );
+    const sb = await fetchJson(ESPN_NCAAM_SCOREBOARD);
+    const events = sb.events || [];
 
+    const event = events.find((ev) => {
+      const comp = ev.competitions && ev.competitions[0];
+      if (!comp || !comp.competitors) return false;
+      return comp.competitors.some(isCreighton);
+    });
+
+    if (event) {
+      return mapEspnEventToLiveNext(event, isCreighton);
+    }
+  } catch (e) {
+    console.error("ESPN Creighton scoreboard error", e);
+  }
+
+  // 2) Fall back to Creighton team endpoint (id 156) for nextEvent
+  try {
+    const teamJson = await fetchJson(ESPN_CREIGHTON_TEAM);
+    const nextEvent = getFirstNextEventFromTeam(teamJson);
     if (nextEvent) {
       return mapEspnEventToLiveNext(nextEvent, isCreighton);
     }
   } catch (e) {
-    console.error("ESPN Creighton scoreboard range error", e);
+    console.error("ESPN Creighton team endpoint error", e);
   }
 
-  // Offseason / no games scheduled in window
+  // 3) Offseason / no upcoming games
   return {
     live: null,
     next: {
