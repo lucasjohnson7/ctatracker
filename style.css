@@ -184,11 +184,12 @@ header{
   box-shadow:0 8px 24px rgba(0,0,0,.08);
   flex:1 1 0;
   min-width:0;
+  justify-content: center;
 }
 
 .np-art{
-  width:200px;
-  height:200px;
+  width:300px;
+  height:300px;
   border-radius:18px;
   object-fit:cover;
   image-rendering:pixelated;
