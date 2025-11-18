@@ -164,9 +164,9 @@ header{
 
 .bottom-row{
   display:flex;
-  gap:12px;                 /* same gap as inside right column */
+  gap:12px;
   justify-content:space-between;
-  align-items:stretch;      /* make music + right column same height */
+  align-items:stretch;
 }
 
 /* Lock-screen style Now Playing – album art on top, centered */
@@ -174,7 +174,7 @@ header{
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:center;   /* center art + text vertically */
+  justify-content:center;
   text-align:center;
   gap:12px;
   padding:16px 18px;
@@ -182,9 +182,8 @@ header{
   background:var(--pill-bg);
   border:1px solid var(--pill-border);
   box-shadow:0 8px 24px rgba(0,0,0,.08);
-  flex:1 1 0;               /* stretch to match right column */
+  flex:1 1 0;
   min-width:0;
-  /* no height:100% here */
 }
 
 .np-art{
@@ -199,12 +198,11 @@ header{
 }
 
 .np-meta{
-  flex:0 0 auto;            /* text doesn’t stretch, keeps block nicely centered */
+  flex:0 0 auto;
   min-width:0;
   width:100%;
 }
 
-/* base text styles with scrolling support */
 .np-title,
 .np-artist{
   --scroll-distance:0px;
@@ -219,7 +217,6 @@ header{
   transform:translateX(0);
 }
 
-/* scrolling state */
 .np-title.scrolling span,
 .np-artist.scrolling span{
   animation:np-scroll 8s linear infinite;
@@ -250,7 +247,6 @@ header{
   white-space:nowrap;
 }
 
-/* subtle progress bar */
 .np-bar{
   margin-top:10px;
   height:8px;
@@ -274,29 +270,29 @@ header{
   display:flex;
   flex-direction:column;
   gap:12px;
-  min-width: 0;
+  min-width:0;
 }
 
 /* TOP ROW (weather + datetime) */
 .info-top{
   display:flex;
   flex-direction:row;
-  gap:12px;          /* space between the two cards */
-  width:100%;        /* stretch to match sports-card width */
+  gap:12px;
+  width:100%;
 }
 
-/* Generic card style shared by weather, datetime, sports */
+/* Generic card style */
 .weather,
 .datetime-card,
 .sports-card{
-  padding:16px 18px;      /* match the sports card */
-  border-radius:16px;     /* same rounded corners */
+  padding:16px 18px;
+  border-radius:16px;
   background:var(--pill-bg);
   border:1px solid var(--pill-border);
   box-sizing:border-box;
 }
 
-/* Weather + datetime: make them flex so they reach the right edge */
+/* Weather + datetime */
 .weather,
 .datetime-card{
   display:flex;
@@ -305,24 +301,25 @@ header{
   justify-content:center;
   text-align:center;
   gap:10px;
-
-  flex:1 1 0;      /* each takes half of the row */
-  width:auto;      /* no fixed width */
-  height:150px;    /* was 170px – shorter so sports fits cleanly */
+  flex:1 1 0;
+  width:auto;
+  height:150px;
 }
 
-/* Weather-specific bits */
+/* Weather icon */
 .wx-icon{
   width:72px;
   height:72px;
   image-rendering:pixelated;
 }
 
+/* ⭐ FIXED: Weather content perfectly centered */
 .weather-info {
   display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
+  flex-direction:column;     /* 🔥 vertical stack */
+  align-items:center;        /* 🔥 center horizontally */
+  justify-content:center;    /* 🔥 center vertically */
+  gap:4px;
 }
 
 .wx-temp{
@@ -334,7 +331,7 @@ header{
   font-size:18px;
 }
 
-/* Date/Time card */
+/* Date/Time */
 .dt-date{
   font-size:22px;
   font-weight:700;
@@ -349,7 +346,6 @@ header{
    SPORTS SCOREBUG
    =========================== */
 
-/* Sports card: full width under the two top cards, no title */
 .sports-card{
   display:flex;
   flex-direction:column;
@@ -358,7 +354,6 @@ header{
   width:100%;
 }
 
-/* Row container */
 .sports-team.scorebug{
   display:flex;
   align-items:center;
@@ -375,7 +370,6 @@ header{
   border-top:none;
 }
 
-/* Away / Home columns */
 .scorebug-team{
   display:flex;
   align-items:center;
@@ -390,7 +384,6 @@ header{
   gap:4px;
 }
 
-/* Bigger logos */
 .team-logo{
   width:48px;
   height:48px;
@@ -398,7 +391,6 @@ header{
   image-rendering:pixelated;
 }
 
-/* Bigger team names */
 .team-name{
   font-size:16px;
   font-weight:800;
@@ -412,7 +404,6 @@ header{
   -webkit-box-orient:vertical;
 }
 
-/* Bigger scores */
 .team-score{
   font-size:28px;
   font-weight:900;
@@ -420,7 +411,6 @@ header{
   text-align:center;
 }
 
-/* Center block: @ + date/time OR period/clock */
 .scorebug-center{
   flex:0 0 auto;
   display:flex;
@@ -448,7 +438,6 @@ header{
   opacity:.9;
 }
 
-/* Flush alignment: away left, home right */
 .scorebug-away{
   margin-right:auto;
 }
@@ -459,10 +448,9 @@ header{
 }
 
 .scorebug-home .team-inner{
-  align-items: center;   /* center logo + name */
+  align-items:center;
 }
 
-/* Make the whole bug slightly smaller on narrow displays */
 @media (max-width: 680px){
   .team-logo{
     width:36px;
@@ -483,7 +471,6 @@ header{
   }
 }
 
-/* Compact on small screens */
 @media (max-width: 680px){
   .bottom-row{
     flex-direction:column;
