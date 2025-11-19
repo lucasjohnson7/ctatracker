@@ -709,11 +709,11 @@ function tickClocks(){
 }
 tickClocks();
 setInterval(tickClocks, 60000);
-
 /* ===== Now Playing + slideshow ===== */
 async function loadNowPlaying(){
   try{
     const r = await fetch('/api/sonos/now-playing', { cache:'no-store' });
+    if (!r.ok) throw new Error('now-playing error');
     const j = await r.json();
 
     const art      = document.getElementById('npArt');
@@ -723,7 +723,14 @@ async function loadNowPlaying(){
     const fill     = document.getElementById('npFill');
     const meta     = document.querySelector('.np-meta');
 
-    if (j.playing){
+    // Treat "Spotify" (or blank) as idle, even if j.playing is true
+    const hasRealTrack =
+      j &&
+      j.playing &&
+      j.title &&
+      j.title.toLowerCase() !== 'spotify';
+
+    if (hasRealTrack){
       // back to music mode
       stopSlideshow();
 
@@ -743,21 +750,34 @@ async function loadNowPlaying(){
         art.style.display = 'none';
       }
 
-      if (Number.isFinite(j.positionMs) && Number.isFinite(j.durationMs) && j.durationMs > 0){
-        const pct = Math.max(0, Math.min(100, (j.positionMs / j.durationMs) * 100));
+      if (
+        Number.isFinite(j.positionMs) &&
+        Number.isFinite(j.durationMs) &&
+        j.durationMs > 0
+      ){
+        const pct = Math.max(
+          0,
+          Math.min(100, (j.positionMs / j.durationMs) * 100)
+        );
         fill.style.width = pct.toFixed(1) + '%';
         bar.hidden = false;
       } else {
         bar.hidden = true;
       }
     } else {
-      // nothing playing → slideshow mode
+      // nothing meaningful playing → slideshow mode
       startSlideshow();
     }
   } catch(e){
     console.error(e);
+    // If the API blows up, fall back to slideshow instead of stale text
+    startSlideshow();
   }
 }
+
+loadNowPlaying();
+setInterval(loadNowPlaying, 10000);
+loadSports();
 
 loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
