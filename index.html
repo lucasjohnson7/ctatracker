@@ -196,17 +196,22 @@ const SLIDESHOW_IMAGES = [
   'slidshow/IMG_9362.jpeg'
 ];
 
+const SLIDESHOW_INTERVAL_MS = 25000; // 25 seconds per photo
+
 let slideshowIndex = 0;
 let slideshowTimer = null;
 
 function startSlideshow(){
   if (!SLIDESHOW_IMAGES.length) return;
 
-  const art     = document.getElementById('npArt');
-  const meta    = document.querySelector('.np-meta');
-  const bar     = document.getElementById('npBar');
-  const titleEl = document.getElementById('npTitle');
-  const artistEl= document.getElementById('npArtist');
+  // If already running, don't restart or jump ahead
+  if (slideshowTimer) return;
+
+  const art      = document.getElementById('npArt');
+  const meta     = document.querySelector('.np-meta');
+  const bar      = document.getElementById('npBar');
+  const titleEl  = document.getElementById('npTitle');
+  const artistEl = document.getElementById('npArtist');
 
   // hide the music text UI, just show photos
   if (meta)    meta.style.display = 'none';
@@ -223,22 +228,17 @@ function startSlideshow(){
 
   if (art){
     art.style.display = 'block';
-  }
 
-  function showSlide(){
-    if (!art) return;
-    const src = SLIDESHOW_IMAGES[slideshowIndex % SLIDESHOW_IMAGES.length];
-    art.src = src;
-    slideshowIndex = (slideshowIndex + 1) % SLIDESHOW_IMAGES.length;
-  }
+    function showSlide(){
+      const src = SLIDESHOW_IMAGES[slideshowIndex % SLIDESHOW_IMAGES.length];
+      art.src = src;
+      slideshowIndex = (slideshowIndex + 1) % SLIDESHOW_IMAGES.length;
+    }
 
-  // avoid multiple intervals stacking
-  if (slideshowTimer){
-    clearInterval(slideshowTimer);
+    // first image immediately, then every N seconds
+    showSlide();
+    slideshowTimer = setInterval(showSlide, SLIDESHOW_INTERVAL_MS);
   }
-
-  showSlide();
-  slideshowTimer = setInterval(showSlide, 10000); // 10s per photo
 }
 
 function stopSlideshow(){
@@ -246,9 +246,9 @@ function stopSlideshow(){
     clearInterval(slideshowTimer);
     slideshowTimer = null;
   }
-  const meta = document.querySelector('.np-meta');
-  if (meta) meta.style.display = 'block';
+  // music UI visibility is handled in loadNowPlaying when needed
 }
+
 
 /* Timestamp + date/time card */
 const setStamp = ()=>{
