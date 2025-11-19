@@ -165,6 +165,92 @@
 <script>
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
 
+/* ========= Slideshow config (for when nothing is playing) ========= */
+/* Put your image files in the project and update these paths */
+const SLIDESHOW_IMAGES = [
+  'slidshow/3F4F1713-D60C-47E0-9CF1-B136266ED3F1.JPG',
+  'slidshow/GEDC2917.JPG',
+  'slidshow/GEDC2976.JPG',
+  'slidshow/GEDC3257.JPG',
+  'slidshow/GEDC3313.JPG',
+  'slidshow/GEDC3611.JPG',
+  'slidshow/IMG_0083.jpg',
+  'slidshow/IMG_0134.jpg',
+  'slidshow/IMG_0678.jpeg',
+  'slidshow/IMG_0816.jpeg',
+  'slidshow/IMG_1029.JPG',
+  'slidshow/IMG_1095.JPG',
+  'slidshow/IMG_1160.JPG',
+  'slidshow/IMG_1161.JPG',
+  'slidshow/IMG_1177.JPG',
+  'slidshow/IMG_1269.JPG',
+  'slidshow/IMG_1693.jpeg',
+  'slidshow/IMG_4594.jpeg',
+  'slidshow/IMG_4647.jpeg',
+  'slidshow/IMG_7078.jpeg',
+  'slidshow/IMG_7586.jpeg',
+  'slidshow/IMG_7616.jpeg',
+  'slidshow/IMG_8146.jpeg',
+  'slidshow/IMG_8565_Original.jpeg',
+  'slidshow/IMG_8686.jpeg',
+  'slidshow/IMG_9362.jpeg'
+];
+
+
+let slideshowIndex = 0;
+let slideshowTimer = null;
+
+function startSlideshow(){
+  if (!SLIDESHOW_IMAGES.length) return;
+
+  const art     = document.getElementById('npArt');
+  const meta    = document.querySelector('.np-meta');
+  const bar     = document.getElementById('npBar');
+  const titleEl = document.getElementById('npTitle');
+  const artistEl= document.getElementById('npArtist');
+
+  // hide the music text UI, just show photos
+  if (meta)    meta.style.display = 'none';
+  if (bar)     bar.hidden = true;
+
+  if (titleEl){
+    titleEl.classList.remove('scrolling');
+    titleEl.innerHTML = '';
+  }
+  if (artistEl){
+    artistEl.classList.remove('scrolling');
+    artistEl.innerHTML = '';
+  }
+
+  if (art){
+    art.style.display = 'block';
+  }
+
+  function showSlide(){
+    if (!art) return;
+    const src = SLIDESHOW_IMAGES[slideshowIndex % SLIDESHOW_IMAGES.length];
+    art.src = src;
+    slideshowIndex = (slideshowIndex + 1) % SLIDESHOW_IMAGES.length;
+  }
+
+  // avoid multiple intervals stacking
+  if (slideshowTimer){
+    clearInterval(slideshowTimer);
+  }
+
+  showSlide();
+  slideshowTimer = setInterval(showSlide, 10000); // 10s per photo
+}
+
+function stopSlideshow(){
+  if (slideshowTimer){
+    clearInterval(slideshowTimer);
+    slideshowTimer = null;
+  }
+  const meta = document.querySelector('.np-meta');
+  if (meta) meta.style.display = 'block';
+}
+
 /* Timestamp + date/time card */
 const setStamp = ()=>{
   const now = new Date();
@@ -395,6 +481,7 @@ function setScrollingText(el, text){
     }
   });
 }
+
 /* ===== Sports card (Creighton / Bulls / Bears — scorebug layout) ===== */
 
 const SPORTS_TEAMS = [
@@ -452,7 +539,6 @@ function gameSortKey(data){
 
   const today = new Date();
   const baseYear = today.getFullYear();
-  // n.date is like "Sat, Nov 16", n.time like "7:00 PM"
   const dateString = `${n.date} ${baseYear} ${n.time || ''}`;
   const guess = new Date(dateString);
   if (!isNaN(guess.getTime())) return guess.getTime();
@@ -460,7 +546,7 @@ function gameSortKey(data){
   return Number.POSITIVE_INFINITY;
 }
 
-// Actually paint one row (same logic you already had, just reused)
+// Actually paint one row
 function updateSportsRow(team, data){
   const row = document.getElementById(team.id);
   if (!row) return;
@@ -565,28 +651,21 @@ function updateSportsRow(team, data){
   }
 }
 
-// Use the stored data to:
-//  1) update each row's contents
-//  2) reorder rows by soonest game / live on top
 function renderSportsFromState(){
   const card = document.getElementById('sportsCard');
   if (!card) return;
 
-  // Build an ordered array from the state + team list
   const states = SPORTS_TEAMS.map(team => ({
     team,
     data: (SPORTS_STATE[team.key] && SPORTS_STATE[team.key].data) || null
   }));
 
-  // First, draw each row
   states.forEach(({team, data}) => updateSportsRow(team, data));
 
-  // Then sort by live/next start time
   const sorted = states.slice().sort(
     (a, b) => gameSortKey(a.data) - gameSortKey(b.data)
   );
 
-  // Re-append rows to the card
   sorted.forEach(({team}) => {
     const row = document.getElementById(team.id);
     if (row) card.appendChild(row);
@@ -605,7 +684,6 @@ async function fetchTeamStatus(team){
     console.error('sports error', team.key, e);
     SPORTS_STATE[team.key] = { data: null };
   }
-  // After each fetch, redraw + reorder using whatever data we have
   renderSportsFromState();
 }
 
@@ -633,20 +711,30 @@ function tickClocks(){
 tickClocks();
 setInterval(tickClocks, 60000);
 
+/* ===== Now Playing + slideshow ===== */
 async function loadNowPlaying(){
   try{
     const r = await fetch('/api/sonos/now-playing', { cache:'no-store' });
     const j = await r.json();
 
-    const art  = document.getElementById('npArt');
+    const art      = document.getElementById('npArt');
     const titleEl  = document.getElementById('npTitle');
     const artistEl = document.getElementById('npArtist');
-    const bar  = document.getElementById('npBar');
-    const fill = document.getElementById('npFill');
+    const bar      = document.getElementById('npBar');
+    const fill     = document.getElementById('npFill');
+    const meta     = document.querySelector('.np-meta');
 
     if (j.playing){
+      // back to music mode
+      stopSlideshow();
+
+      if (meta) meta.style.display = 'block';
+
       setScrollingText(titleEl, j.title || 'Playing…');
-      setScrollingText(artistEl, [j.artist, j.album].filter(Boolean).join(' — ') || '—');
+      setScrollingText(
+        artistEl,
+        [j.artist, j.album].filter(Boolean).join(' — ') || '—'
+      );
 
       if (j.image) {
         art.src = j.image;
@@ -664,10 +752,8 @@ async function loadNowPlaying(){
         bar.hidden = true;
       }
     } else {
-      setScrollingText(titleEl, 'Nothing playing');
-      setScrollingText(artistEl, '');
-      art.style.display = 'none';
-      bar.hidden = true;
+      // nothing playing → slideshow mode
+      startSlideshow();
     }
   } catch(e){
     console.error(e);
