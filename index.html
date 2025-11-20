@@ -226,8 +226,13 @@ function startSlideshow(){
     artistEl.innerHTML = '';
   }
 
-  if (art){
-    art.style.display = 'block';
+if (art){
+  art.style.display = 'block';
+}
+
+// enlarge container for slideshow mode
+document.getElementById('nowplaying').classList.add('slideshow-mode');
+
 
     function showSlide(){
       const src = SLIDESHOW_IMAGES[slideshowIndex % SLIDESHOW_IMAGES.length];
@@ -239,7 +244,7 @@ function startSlideshow(){
     showSlide();
     slideshowTimer = setInterval(showSlide, SLIDESHOW_INTERVAL_MS);
   }
-}
+
 
 function stopSlideshow(){
   if (slideshowTimer){
@@ -734,7 +739,11 @@ async function loadNowPlaying(){
       // back to music mode
       stopSlideshow();
 
-      if (meta) meta.style.display = 'block';
+if (meta) meta.style.display = 'block';
+
+// remove slideshow mode sizing
+document.getElementById('nowplaying').classList.remove('slideshow-mode');
+
 
       setScrollingText(titleEl, j.title || 'Playing…');
       setScrollingText(
