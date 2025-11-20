@@ -1,6 +1,7 @@
 // api/sports.js
 // Vercel Edge Function — Sports for wall display
-// Shape returned:
+//
+// Returned shape:
 //
 // {
 //   live: {
@@ -264,6 +265,35 @@ function getFirstNextEventFromTeam(teamJson) {
   );
 }
 
+/**
+ * For Creighton: look at previousEvent[] on the team endpoint and
+ * return the first event that maps to a FINAL with real scores.
+ */
+function getFirstPreviousFinalWithScores(teamJson, isOurTeam) {
+  const team = teamJson.team || {};
+  const arr =
+    team.previousEvent ||
+    team.previousEvents ||
+    []; // not sure which ESPN uses, so check both
+
+  if (!Array.isArray(arr) || !arr.length) return null;
+
+  for (const ev of arr) {
+    if (!ev.competitions || !ev.competitions.length) continue;
+    const mapped = mapEspnEventToLiveNext(ev, isOurTeam);
+    const live = mapped.live;
+    if (
+      live &&
+      live.period === "F" &&
+      Number.isFinite(live.usScore) &&
+      Number.isFinite(live.themScore)
+    ) {
+      return mapped;
+    }
+  }
+  return null;
+}
+
 /* ===========================
    TEAM-SPECIFIC HELPERS
    =========================== */
@@ -356,6 +386,7 @@ async function getCreightonStatus() {
     return name.includes("Creighton") || short === "CREI";
   };
 
+  // 1) Today’s (or live) game from NCAAM scoreboard
   try {
     const sb = await fetchJson(ESPN_NCAAM_SCOREBOARD);
     const events = sb.events || [];
@@ -366,19 +397,53 @@ async function getCreightonStatus() {
       return comp.competitors.some(isCreighton);
     });
 
-    if (event) return mapEspnEventToLiveNext(event, isCreighton);
+    if (event) {
+      const mapped = mapEspnEventToLiveNext(event, isCreighton);
+
+      const live = mapped.live;
+      const scoresMissing =
+        live &&
+        live.period === "F" &&
+        (!Number.isFinite(live.usScore) ||
+          !Number.isFinite(live.themScore));
+
+      if (scoresMissing) {
+        // 1b) Scoreboard says FINAL but no scores → pull from team.previousEvent
+        try {
+          const teamJson = await fetchJson(ESPN_CREIGHTON_TEAM);
+          const prevMapped = getFirstPreviousFinalWithScores(
+            teamJson,
+            isCreighton
+          );
+          if (prevMapped) {
+            return prevMapped;
+          }
+        } catch (e) {
+          console.error(
+            "ESPN Creighton previousEvent fallback error",
+            e
+          );
+        }
+      }
+
+      return mapped;
+    }
   } catch (e) {
     console.error("ESPN Creighton scoreboard error", e);
   }
 
+  // 2) Fall back to Creighton team endpoint (id 156) for nextEvent
   try {
     const teamJson = await fetchJson(ESPN_CREIGHTON_TEAM);
     const nextEvent = getFirstNextEventFromTeam(teamJson);
-    if (nextEvent) return mapEspnEventToLiveNext(nextEvent, isCreighton);
+    if (nextEvent) {
+      return mapEspnEventToLiveNext(nextEvent, isCreighton);
+    }
   } catch (e) {
     console.error("ESPN Creighton team endpoint error", e);
   }
 
+  // 3) Offseason / no upcoming games
   return {
     live: null,
     next: {
