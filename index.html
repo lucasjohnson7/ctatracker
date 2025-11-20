@@ -49,7 +49,7 @@
 
 <!-- Bottom row: Music (left) + Weather / Date (top-right) + Sports (bottom-right) -->
 <section class="bottom-row">
-  <!-- Lock-screen style Now Playing -->
+  <!-- Lock-screen style Now Playing / Slideshow -->
   <section class="nowplaying" id="nowplaying" aria-live="polite">
     <img id="npArt" class="np-art" alt="Album art" />
     <div class="np-meta">
@@ -166,7 +166,6 @@
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
 
 /* ========= Slideshow config (for when nothing is playing) ========= */
-/* Put your image files in the project and update these paths */
 const SLIDESHOW_IMAGES = [
   'slidshow/3F4F1713-D60C-47E0-9CF1-B136266ED3F1.JPG',
   'slidshow/GEDC2917.JPG',
@@ -212,6 +211,9 @@ function startSlideshow(){
   const bar      = document.getElementById('npBar');
   const titleEl  = document.getElementById('npTitle');
   const artistEl = document.getElementById('npArtist');
+  const npBox    = document.getElementById('nowplaying');
+
+  if (!art) return;
 
   // hide the music text UI, just show photos
   if (meta)    meta.style.display = 'none';
@@ -226,34 +228,30 @@ function startSlideshow(){
     artistEl.innerHTML = '';
   }
 
-if (art){
   art.style.display = 'block';
-}
 
-// enlarge container for slideshow mode
-document.getElementById('nowplaying').classList.add('slideshow-mode');
+  // enlarge container for slideshow mode
+  if (npBox) npBox.classList.add('slideshow-mode');
 
-
-    function showSlide(){
-      const src = SLIDESHOW_IMAGES[slideshowIndex % SLIDESHOW_IMAGES.length];
-      art.src = src;
-      slideshowIndex = (slideshowIndex + 1) % SLIDESHOW_IMAGES.length;
-    }
-
-    // first image immediately, then every N seconds
-    showSlide();
-    slideshowTimer = setInterval(showSlide, SLIDESHOW_INTERVAL_MS);
+  function showSlide(){
+    const src = SLIDESHOW_IMAGES[slideshowIndex % SLIDESHOW_IMAGES.length];
+    art.src = src;
+    slideshowIndex = (slideshowIndex + 1) % SLIDESHOW_IMAGES.length;
   }
 
+  // first image immediately, then every N seconds
+  showSlide();
+  slideshowTimer = setInterval(showSlide, SLIDESHOW_INTERVAL_MS);
+}
 
 function stopSlideshow(){
   if (slideshowTimer){
     clearInterval(slideshowTimer);
     slideshowTimer = null;
   }
-  // music UI visibility is handled in loadNowPlaying when needed
+  const npBox = document.getElementById('nowplaying');
+  if (npBox) npBox.classList.remove('slideshow-mode');
 }
-
 
 /* Timestamp + date/time card */
 const setStamp = ()=>{
@@ -385,7 +383,7 @@ async function fetchJSON(url){
   const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw 0; return r.json();
 }
 
-/* Renders */
+/* Train + Bus rendering */
 function renderList(rows, target, runner, maxRows){
   const el=document.querySelector(target);
   if(!rows.length){
@@ -415,7 +413,6 @@ async function loadTrains(){
     const data=await fetchJSON("/api/train?mapid=40360");
     const loopRows    = data.filter(x=>/Loop/i.test(x.stpDe||""));
     const kimballRows = data.filter(x=>/Kimball/i.test(x.stpDe||""));
-    // limits: Loop = 2, Kimball = 4
     renderList(loopRows,    "#trainLoopBody",   "#trainLoopRun",   2);
     renderList(kimballRows, "#trainKimballBody","#trainKimballRun",4);
   }catch{
@@ -454,7 +451,6 @@ async function loadBuses(){
       fetchJSON("/api/bus?stpid=17833&rt=77"),
       fetchJSON("/api/bus?stpid=14920&rt=77")
     ]);
-    // limits: 3 each
     renderBus(east.rows||[], "#busEastBody", "#busEastRun", 3);
     renderBus(west.rows||[], "#busWestBody", "#busWestRun", 3);
   }catch{
@@ -509,10 +505,8 @@ const SPORTS_TEAMS = [
   }
 ];
 
-// we’ll stash the latest data here keyed by team.key
 const SPORTS_STATE = {};
 
-// Turn "Sun, Nov 16" into "TODAY" or "11/16"
 function formatDateLabel(dateText){
   if (!dateText) return '';
   const today = new Date();
@@ -529,12 +523,10 @@ function formatDateLabel(dateText){
   return dateText;
 }
 
-// sort key: live games first (0), then earliest start time
 function gameSortKey(data){
   if (!data) return Number.POSITIVE_INFINITY;
 
   if (data.live) {
-    // LIVE (or just finished) should always float to the top
     return 0;
   }
 
@@ -550,7 +542,6 @@ function gameSortKey(data){
   return Number.POSITIVE_INFINITY;
 }
 
-// Actually paint one row
 function updateSportsRow(team, data){
   const row = document.getElementById(team.id);
   if (!row) return;
@@ -564,7 +555,6 @@ function updateSportsRow(team, data){
   const line1El      = row.querySelector('.scorebug-center-line1');
   const line2El      = row.querySelector('.scorebug-center-line2');
 
-  // Defaults
   awayNameEl.textContent  = '';
   homeNameEl.textContent  = '';
   awayScoreEl.textContent = '–';
@@ -572,7 +562,6 @@ function updateSportsRow(team, data){
   line1El.textContent     = 'No game today.';
   line2El.textContent     = '';
 
-  // If we got nothing back at all, just show our team logo/name on left
   if (!data || (!data.live && !data.next)){
     awayNameEl.textContent = team.label;
     if (awayLogoEl && team.logo){
@@ -588,7 +577,7 @@ function updateSportsRow(team, data){
   const next = !live && data.next ? data.next : null;
   const payload = live || next;
 
-  const isHome = (payload.homeAway || 'vs') === 'vs'; // from our perspective
+  const isHome = (payload.homeAway || 'vs') === 'vs';
   const ourName = team.label;
   const ourLogo = team.logo;
   const oppName = payload.opponentName || 'Opponent';
@@ -714,6 +703,7 @@ function tickClocks(){
 }
 tickClocks();
 setInterval(tickClocks, 60000);
+
 /* ===== Now Playing + slideshow ===== */
 async function loadNowPlaying(){
   try{
@@ -738,12 +728,7 @@ async function loadNowPlaying(){
     if (hasRealTrack){
       // back to music mode
       stopSlideshow();
-
-if (meta) meta.style.display = 'block';
-
-// remove slideshow mode sizing
-document.getElementById('nowplaying').classList.remove('slideshow-mode');
-
+      if (meta) meta.style.display = 'block';
 
       setScrollingText(titleEl, j.title || 'Playing…');
       setScrollingText(
@@ -783,10 +768,6 @@ document.getElementById('nowplaying').classList.remove('slideshow-mode');
     startSlideshow();
   }
 }
-
-loadNowPlaying();
-setInterval(loadNowPlaying, 10000);
-loadSports();
 
 loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
