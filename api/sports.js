@@ -1,8 +1,6 @@
 // api/sports.js
 // Vercel Edge Function — Sports for wall display
 //
-// Returned shape:
-//
 // {
 //   live: {
 //     opponentName,
@@ -47,6 +45,10 @@ const ESPN_NFL_SCOREBOARD =
 const ESPN_NCAAM_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard";
 
+// **NEW**: NCAAM summary base for event-specific box score
+const ESPN_NCAAM_SUMMARY_BASE =
+  "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary?event=";
+
 const ESPN_BULLS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/chi";
 const ESPN_BEARS_TEAM =
@@ -88,10 +90,6 @@ function formatCentralDateTime(dateIsoString) {
 
 /**
  * Try to pull a numeric score from an ESPN competitor object.
- * Handles:
- *   - competitor.score
- *   - competitor.linescores[*].value / score / displayValue
- *   - competitor.statistics entries named "points", "pts", or "score"
  */
 function extractScore(competitor) {
   if (!competitor) return null;
@@ -266,32 +264,28 @@ function getFirstNextEventFromTeam(teamJson) {
 }
 
 /**
- * For Creighton: look at previousEvent[] on the team endpoint and
- * return the first event that maps to a FINAL with real scores.
+ * For Creighton: use ESPN summary endpoint to get a better version of
+ * the same event (sometimes scoreboard has F but no scores).
  */
-function getFirstPreviousFinalWithScores(teamJson, isOurTeam) {
-  const team = teamJson.team || {};
-  const arr =
-    team.previousEvent ||
-    team.previousEvents ||
-    []; // not sure which ESPN uses, so check both
-
-  if (!Array.isArray(arr) || !arr.length) return null;
-
-  for (const ev of arr) {
-    if (!ev.competitions || !ev.competitions.length) continue;
-    const mapped = mapEspnEventToLiveNext(ev, isOurTeam);
-    const live = mapped.live;
-    if (
-      live &&
-      live.period === "F" &&
-      Number.isFinite(live.usScore) &&
-      Number.isFinite(live.themScore)
-    ) {
-      return mapped;
-    }
+async function mapCreightonSummaryEvent(eventId, isOurTeam) {
+  const summary = await fetchJson(ESPN_NCAAM_SUMMARY_BASE + eventId);
+  const header = summary.header || {};
+  const comps = header.competitions || [];
+  if (!comps.length) {
+    return { live: null, next: null };
   }
-  return null;
+
+  // Build a "fake" event in the same shape our mapper expects.
+  const fakeEvent = {
+    date:
+      header.competitions[0]?.date ||
+      header.date ||
+      new Date().toISOString(),
+    competitions: header.competitions,
+    status: header.status,
+  };
+
+  return mapEspnEventToLiveNext(fakeEvent, isOurTeam);
 }
 
 /* ===========================
@@ -398,7 +392,7 @@ async function getCreightonStatus() {
     });
 
     if (event) {
-      const mapped = mapEspnEventToLiveNext(event, isCreighton);
+      let mapped = mapEspnEventToLiveNext(event, isCreighton);
 
       const live = mapped.live;
       const scoresMissing =
@@ -407,22 +401,24 @@ async function getCreightonStatus() {
         (!Number.isFinite(live.usScore) ||
           !Number.isFinite(live.themScore));
 
-      if (scoresMissing) {
-        // 1b) Scoreboard says FINAL but no scores → pull from team.previousEvent
+      // 1b) If FINAL but no scores, hit summary endpoint
+      if (scoresMissing && event.id) {
         try {
-          const teamJson = await fetchJson(ESPN_CREIGHTON_TEAM);
-          const prevMapped = getFirstPreviousFinalWithScores(
-            teamJson,
+          const summaryMapped = await mapCreightonSummaryEvent(
+            event.id,
             isCreighton
           );
-          if (prevMapped) {
-            return prevMapped;
+          const live2 = summaryMapped.live;
+          if (
+            live2 &&
+            live2.period === "F" &&
+            Number.isFinite(live2.usScore) &&
+            Number.isFinite(live2.themScore)
+          ) {
+            mapped = summaryMapped;
           }
         } catch (e) {
-          console.error(
-            "ESPN Creighton previousEvent fallback error",
-            e
-          );
+          console.error("Creighton summary fallback error", e);
         }
       }
 
