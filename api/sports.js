@@ -1,9 +1,5 @@
 // api/sports.js
 // Vercel Edge Function — Sports for wall display
-// - Bulls: NBA scoreboard + Bulls team endpoint (nextEvent)
-// - Bears: NFL scoreboard + Bears team endpoint (nextEvent)
-// - Creighton MBB: NCAAM scoreboard for today/live + Creighton team endpoint (nextEvent)
-//
 // Shape returned:
 //
 // {
@@ -43,7 +39,6 @@ function json(body, status = 200) {
    ESPN ENDPOINTS
    =========================== */
 
-// Scoreboards (per league, "today" when no ?dates param)
 const ESPN_NBA_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
 const ESPN_NFL_SCOREBOARD =
@@ -51,7 +46,6 @@ const ESPN_NFL_SCOREBOARD =
 const ESPN_NCAAM_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard";
 
-// Team endpoints (for Bulls/Bears/Creighton)
 const ESPN_BULLS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/chi";
 const ESPN_BEARS_TEAM =
@@ -72,9 +66,6 @@ async function fetchJson(url) {
    COMMON HELPERS
    =========================== */
 
-/**
- * Format date/time in Central Time from an ESPN event date.
- */
 function formatCentralDateTime(dateIsoString) {
   const d = new Date(dateIsoString);
 
@@ -95,58 +86,76 @@ function formatCentralDateTime(dateIsoString) {
 }
 
 /**
- * Extremely defensive score extractor – handles:
- * - competitor.score
- * - competitor.total
- * - competitor.linescores[*].value / score / displayValue
+ * Try to pull a numeric score from an ESPN competitor object.
+ * Handles:
+ *   - competitor.score
+ *   - competitor.linescores[*].value / score / displayValue
+ *   - competitor.statistics entries named "points", "pts", or "score"
  */
 function extractScore(competitor) {
   if (!competitor) return null;
 
-  // 1) Direct numeric-ish fields
-  const directCandidates = [
-    competitor.score,
-    competitor.total,
-    competitor.points,
-  ].filter((v) => v !== undefined && v !== null);
-
-  for (const v of directCandidates) {
-    const n = parseInt(String(v).trim(), 10);
+  // 1) direct "score" field
+  if (
+    competitor.score !== undefined &&
+    competitor.score !== null &&
+    String(competitor.score).trim() !== ""
+  ) {
+    const n = parseInt(competitor.score, 10);
     if (Number.isFinite(n)) return n;
   }
 
-  // 2) Sum of linescores (common for some NCAAM finals)
-  if (Array.isArray(competitor.linescores) && competitor.linescores.length) {
-    const sum = competitor.linescores
-      .map((ls) => {
-        const cands = [
-          ls.value,
-          ls.score,
-          ls.displayValue,
-          ls.display,
-          ls.periodScore,
-        ].filter((v) => v !== undefined && v !== null);
-        for (const v of cands) {
-          const n = parseInt(String(v).trim(), 10);
-          if (Number.isFinite(n)) return n;
-        }
-        return NaN;
-      })
-      .filter(Number.isFinite)
-      .reduce((a, b) => a + b, 0);
+  // 2) sum of linescores
+  const lines = competitor.linescores || competitor.lineScores || [];
+  if (Array.isArray(lines) && lines.length) {
+    let total = 0;
+    let found = false;
+    for (const ls of lines) {
+      const v =
+        ls?.value ??
+        ls?.score ??
+        ls?.displayValue ??
+        ls?.points ??
+        (Array.isArray(ls?.statistics)
+          ? ls.statistics[0]?.value
+          : undefined);
 
-    if (Number.isFinite(sum) && sum > 0) return sum;
+      const n = parseInt(v, 10);
+      if (Number.isFinite(n)) {
+        total += n;
+        found = true;
+      }
+    }
+    if (found) return total;
+  }
+
+  // 3) statistics array (sometimes has "points" or "pts")
+  const stats = competitor.statistics || competitor.stats || [];
+  if (Array.isArray(stats)) {
+    for (const s of stats) {
+      const label = (
+        s?.name ||
+        s?.label ||
+        s?.abbreviation ||
+        ""
+      ).toLowerCase();
+      if (
+        label.includes("point") ||
+        label === "pts" ||
+        label === "score"
+      ) {
+        const v = s.value ?? s.displayValue;
+        const n = parseInt(v, 10);
+        if (Number.isFinite(n)) return n;
+      }
+    }
   }
 
   return null;
 }
 
 /**
- * Given an ESPN event and a predicate that tells us which competitor is "us",
- * return { live, next } in your normalized shape.
- *
- * @param {object} event - ESPN event (from scoreboard or team.nextEvent)
- * @param {function} isOurTeam - (competitor) => boolean
+ * Normalize an ESPN event -> { live, next } from our team's POV.
  */
 function mapEspnEventToLiveNext(event, isOurTeam) {
   if (!event || !event.competitions || !event.competitions.length) {
@@ -164,36 +173,30 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
 
   const isHome = us.homeAway === "home";
 
-  // Status info
   const statusObj =
     (comp.status && comp.status.type) ||
     (event.status && event.status.type) ||
     {};
   const rawState = (statusObj.state || "").toLowerCase(); // "pre" | "in" | "post"
 
-  // Period + clock
   const periodNumber =
-    comp.status && typeof comp.status.period === "number"
+    (comp.status && typeof comp.status.period === "number"
       ? comp.status.period
-      : statusObj.period;
+      : statusObj.period) ?? null;
 
   let period = "";
   if (typeof periodNumber === "number" && periodNumber > 0) {
-    // Q1–Q4 works visually for NBA / NFL, and is “good enough” for NCAAM
     period = `Q${periodNumber}`;
   }
 
   const clock =
     (comp.status && comp.status.displayClock) || statusObj.displayClock || "";
 
-  // Scores (using robust extractor)
-  let usScore = extractScore(us);
-  let themScore = extractScore(them);
+  const usScore = extractScore(us);
+  const themScore = extractScore(them);
 
-  // Date/time (Central)
   const { dateText, timeText } = formatCentralDateTime(event.date);
 
-  // Opponent info (logo from ESPN)
   const teamInfo = them.team || {};
   const opponentName =
     teamInfo.displayName ||
@@ -251,27 +254,21 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
   };
 }
 
-/**
- * From a team JSON (ESPN team endpoint), return the "best" upcoming event
- * to treat as "next game".
- */
 function getFirstNextEventFromTeam(teamJson) {
   const team = teamJson.team || {};
   const arr = team.nextEvent || [];
-
   if (!Array.isArray(arr) || !arr.length) return null;
 
-  // Only accept entries that already have competitions;
-  // skip $ref-only objects so we don't need another fetch.
-  const fullEvent = arr.find((ev) => ev.competitions && ev.competitions.length);
-  return fullEvent || null;
+  return (
+    arr.find((ev) => ev.competitions && ev.competitions.length) || null
+  );
 }
 
 /* ===========================
    TEAM-SPECIFIC HELPERS
    =========================== */
 
-// ---------- Bulls (NBA) ----------
+// ---------- Bulls ----------
 async function getBullsStatus() {
   const isBulls = (c) => {
     const team = c.team || {};
@@ -280,7 +277,6 @@ async function getBullsStatus() {
     return name === "Chicago Bulls" || short === "CHI";
   };
 
-  // 1) Today’s game (or live) from NBA scoreboard
   try {
     const sb = await fetchJson(ESPN_NBA_SCOREBOARD);
     const events = sb.events || [];
@@ -291,29 +287,23 @@ async function getBullsStatus() {
       return comp.competitors.some(isBulls);
     });
 
-    if (event) {
-      return mapEspnEventToLiveNext(event, isBulls);
-    }
+    if (event) return mapEspnEventToLiveNext(event, isBulls);
   } catch (e) {
     console.error("ESPN Bulls scoreboard error", e);
   }
 
-  // 2) No game on today’s scoreboard → look at Bulls team endpoint for nextEvent
   try {
     const teamJson = await fetchJson(ESPN_BULLS_TEAM);
     const nextEvent = getFirstNextEventFromTeam(teamJson);
-    if (nextEvent) {
-      return mapEspnEventToLiveNext(nextEvent, isBulls);
-    }
+    if (nextEvent) return mapEspnEventToLiveNext(nextEvent, isBulls);
   } catch (e) {
     console.error("ESPN Bulls team endpoint error", e);
   }
 
-  // 3) Nothing we can find
   return { live: null, next: null };
 }
 
-// ---------- Bears (NFL) ----------
+// ---------- Bears ----------
 async function getBearsStatus() {
   const isBears = (c) => {
     const team = c.team || {};
@@ -322,7 +312,6 @@ async function getBearsStatus() {
     return name === "Chicago Bears" || short === "CHI";
   };
 
-  // 1) Today’s game / live from NFL scoreboard
   try {
     const sb = await fetchJson(ESPN_NFL_SCOREBOARD);
     const events = sb.events || [];
@@ -333,25 +322,19 @@ async function getBearsStatus() {
       return comp.competitors.some(isBears);
     });
 
-    if (event) {
-      return mapEspnEventToLiveNext(event, isBears);
-    }
+    if (event) return mapEspnEventToLiveNext(event, isBears);
   } catch (e) {
     console.error("ESPN Bears scoreboard error", e);
   }
 
-  // 2) Fall back to Bears team endpoint for nextEvent
   try {
     const teamJson = await fetchJson(ESPN_BEARS_TEAM);
     const nextEvent = getFirstNextEventFromTeam(teamJson);
-    if (nextEvent) {
-      return mapEspnEventToLiveNext(nextEvent, isBears);
-    }
+    if (nextEvent) return mapEspnEventToLiveNext(nextEvent, isBears);
   } catch (e) {
     console.error("ESPN Bears team endpoint error", e);
   }
 
-  // 3) Probably offseason
   return {
     live: null,
     next: {
@@ -364,7 +347,7 @@ async function getBearsStatus() {
   };
 }
 
-// ---------- Creighton (NCAAM) ----------
+// ---------- Creighton ----------
 async function getCreightonStatus() {
   const isCreighton = (c) => {
     const team = c.team || {};
@@ -373,7 +356,6 @@ async function getCreightonStatus() {
     return name.includes("Creighton") || short === "CREI";
   };
 
-  // 1) Today’s (or live) game from NCAAM scoreboard
   try {
     const sb = await fetchJson(ESPN_NCAAM_SCOREBOARD);
     const events = sb.events || [];
@@ -384,25 +366,19 @@ async function getCreightonStatus() {
       return comp.competitors.some(isCreighton);
     });
 
-    if (event) {
-      return mapEspnEventToLiveNext(event, isCreighton);
-    }
+    if (event) return mapEspnEventToLiveNext(event, isCreighton);
   } catch (e) {
     console.error("ESPN Creighton scoreboard error", e);
   }
 
-  // 2) Fall back to Creighton team endpoint (id 156) for nextEvent
   try {
     const teamJson = await fetchJson(ESPN_CREIGHTON_TEAM);
     const nextEvent = getFirstNextEventFromTeam(teamJson);
-    if (nextEvent) {
-      return mapEspnEventToLiveNext(nextEvent, isCreighton);
-    }
+    if (nextEvent) return mapEspnEventToLiveNext(nextEvent, isCreighton);
   } catch (e) {
     console.error("ESPN Creighton team endpoint error", e);
   }
 
-  // 3) Offseason / no upcoming games
   return {
     live: null,
     next: {
@@ -425,21 +401,15 @@ export default async function handler(req) {
     const teamKey = (searchParams.get("team") || "").toLowerCase();
 
     if (teamKey === "bulls") {
-      const data = await getBullsStatus();
-      return json(data);
+      return json(await getBullsStatus());
     }
-
     if (teamKey === "bears") {
-      const data = await getBearsStatus();
-      return json(data);
+      return json(await getBearsStatus());
     }
-
     if (teamKey === "creighton") {
-      const data = await getCreightonStatus();
-      return json(data);
+      return json(await getCreightonStatus());
     }
 
-    // Unknown team key
     return json({ live: null, next: null });
   } catch (err) {
     console.error("sports error", err);
