@@ -69,7 +69,7 @@ async function fetchJson(url) {
 }
 
 /* ===========================
-   COMMON MAPPERS
+   COMMON HELPERS
    =========================== */
 
 /**
@@ -92,6 +92,53 @@ function formatCentralDateTime(dateIsoString) {
   });
 
   return { dateText, timeText };
+}
+
+/**
+ * Extremely defensive score extractor – handles:
+ * - competitor.score
+ * - competitor.total
+ * - competitor.linescores[*].value / score / displayValue
+ */
+function extractScore(competitor) {
+  if (!competitor) return null;
+
+  // 1) Direct numeric-ish fields
+  const directCandidates = [
+    competitor.score,
+    competitor.total,
+    competitor.points,
+  ].filter((v) => v !== undefined && v !== null);
+
+  for (const v of directCandidates) {
+    const n = parseInt(String(v).trim(), 10);
+    if (Number.isFinite(n)) return n;
+  }
+
+  // 2) Sum of linescores (common for some NCAAM finals)
+  if (Array.isArray(competitor.linescores) && competitor.linescores.length) {
+    const sum = competitor.linescores
+      .map((ls) => {
+        const cands = [
+          ls.value,
+          ls.score,
+          ls.displayValue,
+          ls.display,
+          ls.periodScore,
+        ].filter((v) => v !== undefined && v !== null);
+        for (const v of cands) {
+          const n = parseInt(String(v).trim(), 10);
+          if (Number.isFinite(n)) return n;
+        }
+        return NaN;
+      })
+      .filter(Number.isFinite)
+      .reduce((a, b) => a + b, 0);
+
+    if (Number.isFinite(sum) && sum > 0) return sum;
+  }
+
+  return null;
 }
 
 /**
@@ -139,42 +186,9 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
   const clock =
     (comp.status && comp.status.displayClock) || statusObj.displayClock || "";
 
-  // Scores – be forgiving, and fall back to linescores if needed
-  const rawUsScore   = us.score;
-  const rawThemScore = them.score;
-
-  const parsedUs   = rawUsScore != null ? parseInt(rawUsScore, 10) : NaN;
-  const parsedThem = rawThemScore != null ? parseInt(rawThemScore, 10) : NaN;
-
-  let usScore   = Number.isFinite(parsedUs)   ? parsedUs   : null;
-  let themScore = Number.isFinite(parsedThem) ? parsedThem : null;
-
-  // If totals missing, sum linescores (helps for some NCAAM finals)
-  if (usScore === null && Array.isArray(us.linescores) && us.linescores.length){
-    const sum = us.linescores
-      .map((ls) =>
-        parseInt(
-          ls.value ?? ls.score ?? ls.displayValue ?? "",
-          10
-        )
-      )
-      .filter(Number.isFinite)
-      .reduce((a, b) => a + b, 0);
-    if (Number.isFinite(sum) && sum > 0) usScore = sum;
-  }
-
-  if (themScore === null && Array.isArray(them.linescores) && them.linescores.length){
-    const sum = them.linescores
-      .map((ls) =>
-        parseInt(
-          ls.value ?? ls.score ?? ls.displayValue ?? "",
-          10
-        )
-      )
-      .filter(Number.isFinite)
-      .reduce((a, b) => a + b, 0);
-    if (Number.isFinite(sum) && sum > 0) themScore = sum;
-  }
+  // Scores (using robust extractor)
+  let usScore = extractScore(us);
+  let themScore = extractScore(them);
 
   // Date/time (Central)
   const { dateText, timeText } = formatCentralDateTime(event.date);
