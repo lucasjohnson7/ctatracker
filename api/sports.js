@@ -1,6 +1,8 @@
 // api/sports.js
 // Vercel Edge Function — Sports for wall display
 //
+// Shape returned:
+//
 // {
 //   live: {
 //     opponentName,
@@ -45,10 +47,7 @@ const ESPN_NFL_SCOREBOARD =
 const ESPN_NCAAM_SCOREBOARD =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard";
 
-// **NEW**: NCAAM summary base for event-specific box score
-const ESPN_NCAAM_SUMMARY_BASE =
-  "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/summary?event=";
-
+// Team endpoints
 const ESPN_BULLS_TEAM =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/chi";
 const ESPN_BEARS_TEAM =
@@ -90,21 +89,46 @@ function formatCentralDateTime(dateIsoString) {
 
 /**
  * Try to pull a numeric score from an ESPN competitor object.
+ *
+ * Handles:
+ *   - competitor.score = "83" or 83
+ *   - competitor.score = { value: 83, displayValue: "83" }
+ *   - competitor.linescores[*].value / score / displayValue
+ *   - competitor.statistics entries named "points", "pts", or "score"
  */
 function extractScore(competitor) {
   if (!competitor) return null;
 
-  // 1) direct "score" field
+  // ---- 1) direct "score" field ----
   if (
     competitor.score !== undefined &&
-    competitor.score !== null &&
-    String(competitor.score).trim() !== ""
+    competitor.score !== null
   ) {
-    const n = parseInt(competitor.score, 10);
-    if (Number.isFinite(n)) return n;
+    const s = competitor.score;
+
+    // primitive string/number
+    if (typeof s === "string" || typeof s === "number") {
+      const n = parseInt(s, 10);
+      if (Number.isFinite(n)) return n;
+    }
+
+    // object shape: { value, displayValue }
+    if (typeof s === "object") {
+      const candList = [
+        s.value,
+        s.displayValue,
+        s.score,
+        s.text,
+      ];
+      for (const cand of candList) {
+        if (cand === undefined || cand === null) continue;
+        const n = parseInt(String(cand), 10);
+        if (Number.isFinite(n)) return n;
+      }
+    }
   }
 
-  // 2) sum of linescores
+  // ---- 2) sum of linescores (per-period scores) ----
   const lines = competitor.linescores || competitor.lineScores || [];
   if (Array.isArray(lines) && lines.length) {
     let total = 0;
@@ -119,7 +143,9 @@ function extractScore(competitor) {
           ? ls.statistics[0]?.value
           : undefined);
 
-      const n = parseInt(v, 10);
+      if (v === undefined || v === null) continue;
+
+      const n = parseInt(String(v), 10);
       if (Number.isFinite(n)) {
         total += n;
         found = true;
@@ -128,7 +154,7 @@ function extractScore(competitor) {
     if (found) return total;
   }
 
-  // 3) statistics array (sometimes has "points" or "pts")
+  // ---- 3) statistics array (sometimes has "points" or "pts") ----
   const stats = competitor.statistics || competitor.stats || [];
   if (Array.isArray(stats)) {
     for (const s of stats) {
@@ -144,7 +170,8 @@ function extractScore(competitor) {
         label === "score"
       ) {
         const v = s.value ?? s.displayValue;
-        const n = parseInt(v, 10);
+        if (v === undefined || v === null) continue;
+        const n = parseInt(String(v), 10);
         if (Number.isFinite(n)) return n;
       }
     }
@@ -263,31 +290,6 @@ function getFirstNextEventFromTeam(teamJson) {
   );
 }
 
-/**
- * For Creighton: use ESPN summary endpoint to get a better version of
- * the same event (sometimes scoreboard has F but no scores).
- */
-async function mapCreightonSummaryEvent(eventId, isOurTeam) {
-  const summary = await fetchJson(ESPN_NCAAM_SUMMARY_BASE + eventId);
-  const header = summary.header || {};
-  const comps = header.competitions || [];
-  if (!comps.length) {
-    return { live: null, next: null };
-  }
-
-  // Build a "fake" event in the same shape our mapper expects.
-  const fakeEvent = {
-    date:
-      header.competitions[0]?.date ||
-      header.date ||
-      new Date().toISOString(),
-    competitions: header.competitions,
-    status: header.status,
-  };
-
-  return mapEspnEventToLiveNext(fakeEvent, isOurTeam);
-}
-
 /* ===========================
    TEAM-SPECIFIC HELPERS
    =========================== */
@@ -380,7 +382,6 @@ async function getCreightonStatus() {
     return name.includes("Creighton") || short === "CREI";
   };
 
-  // 1) Today’s (or live) game from NCAAM scoreboard
   try {
     const sb = await fetchJson(ESPN_NCAAM_SCOREBOARD);
     const events = sb.events || [];
@@ -391,55 +392,19 @@ async function getCreightonStatus() {
       return comp.competitors.some(isCreighton);
     });
 
-    if (event) {
-      let mapped = mapEspnEventToLiveNext(event, isCreighton);
-
-      const live = mapped.live;
-      const scoresMissing =
-        live &&
-        live.period === "F" &&
-        (!Number.isFinite(live.usScore) ||
-          !Number.isFinite(live.themScore));
-
-      // 1b) If FINAL but no scores, hit summary endpoint
-      if (scoresMissing && event.id) {
-        try {
-          const summaryMapped = await mapCreightonSummaryEvent(
-            event.id,
-            isCreighton
-          );
-          const live2 = summaryMapped.live;
-          if (
-            live2 &&
-            live2.period === "F" &&
-            Number.isFinite(live2.usScore) &&
-            Number.isFinite(live2.themScore)
-          ) {
-            mapped = summaryMapped;
-          }
-        } catch (e) {
-          console.error("Creighton summary fallback error", e);
-        }
-      }
-
-      return mapped;
-    }
+    if (event) return mapEspnEventToLiveNext(event, isCreighton);
   } catch (e) {
     console.error("ESPN Creighton scoreboard error", e);
   }
 
-  // 2) Fall back to Creighton team endpoint (id 156) for nextEvent
   try {
     const teamJson = await fetchJson(ESPN_CREIGHTON_TEAM);
     const nextEvent = getFirstNextEventFromTeam(teamJson);
-    if (nextEvent) {
-      return mapEspnEventToLiveNext(nextEvent, isCreighton);
-    }
+    if (nextEvent) return mapEspnEventToLiveNext(nextEvent, isCreighton);
   } catch (e) {
     console.error("ESPN Creighton team endpoint error", e);
   }
 
-  // 3) Offseason / no upcoming games
   return {
     live: null,
     next: {
