@@ -413,8 +413,8 @@ async function loadTrains(){
     const data=await fetchJSON("/api/train?mapid=40360");
     const loopRows    = data.filter(x=>/Loop/i.test(x.stpDe||""));
     const kimballRows = data.filter(x=>/Kimball/i.test(x.stpDe||""));
-    renderList(loopRows,    "#trainLoopBody",   "#trainLoopRun",   2);
-    renderList(kimballRows, "#trainKimballBody","#trainKimballRun",4);
+    renderList(loopRows,    "#trainLoopBody",   "#trainLoopRun", 2);
+    renderList(kimballRows, "#trainKimballBody","#trainKimballRun", 3);
   }catch{
     document.querySelector("#trainLoopBody").innerHTML="<div class='row empty'>Error</div>";
     document.querySelector("#trainKimballBody").innerHTML="<div class='row empty'>Error</div>";
