@@ -299,14 +299,14 @@ function wxIconFile(code, now=new Date()){
   const h=now.getHours(), m=now.getMinutes();
   const isDay=(h>6 && h<18)||(h===6)||(h===18&&m===0);
 
-  if (code === 0) return isDay ? 'sun.png' : 'moon.png';              // clear
-  if ([1,2].includes(code)) return 'partlycloudy.png';               // mostly clear / few clouds
-  if (code === 3) return 'cloudy.png';                               // overcast / partly cloudy
-  if ([45,48].includes(code)) return 'cloudy.png';                   // fog
-  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return 'rain.png';  // drizzle/rain/showers
-  if ([71,73,75,77,85,86].includes(code)) return 'snow.png';         // snow
-  if ([95,96,99].includes(code)) return 'rain.png';                  // t-storms fallback
-  return 'cloudy.png';
+  if (code === 0) return isDay ? './images/sun.png' : './images/moon.png';              // clear
+  if ([1,2].includes(code)) return './images/partlycloudy.png';               // mostly clear / few clouds
+  if (code === 3) return './images/cloudy.png';                               // overcast / partly cloudy
+  if ([45,48].includes(code)) return './images/cloudy.png';                   // fog
+  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return './images/rain.png';  // drizzle/rain/showers
+  if ([71,73,75,77,85,86].includes(code)) return './images/snow.png';         // snow
+  if ([95,96,99].includes(code)) return './images/rain.png';                  // t-storms fallback
+  return './images/cloudy.png';
 }
 
 function wxText(code, now=new Date()){
