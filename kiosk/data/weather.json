@@ -1,0 +1,6 @@
+{
+  "temperature": 23.0,
+  "weather_code": 1,
+  "icon_path": "./images/cloudy.png",
+  "icon_text": "Cloudy"
+}

@@ -1,0 +1,90 @@
+[
+  {
+    "staId": "40360",
+    "stpId": "30071",
+    "stpDe": "Service toward Loop",
+    "staNm": "Southport",
+    "rn": "422",
+    "destNm": "Loop",
+    "arrT": "2026-02-01T17:43:35",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "40360",
+    "stpId": "30070",
+    "stpDe": "Service toward Kimball",
+    "staNm": "Southport",
+    "rn": "411",
+    "destNm": "Kimball",
+    "arrT": "2026-02-01T17:45:47",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "40360",
+    "stpId": "30070",
+    "stpDe": "Service toward Kimball",
+    "staNm": "Southport",
+    "rn": "419",
+    "destNm": "Kimball",
+    "arrT": "2026-02-01T17:53:48",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "40360",
+    "stpId": "30071",
+    "stpDe": "Service toward Loop",
+    "staNm": "Southport",
+    "rn": "412",
+    "destNm": "Loop",
+    "arrT": "2026-02-01T17:55:03",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "40360",
+    "stpId": "30070",
+    "stpDe": "Service toward Kimball",
+    "staNm": "Southport",
+    "rn": "420",
+    "destNm": "Kimball",
+    "arrT": "2026-02-01T18:04:24",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "40360",
+    "stpId": "30070",
+    "stpDe": "Service toward Kimball",
+    "staNm": "Southport",
+    "rn": "421",
+    "destNm": "Kimball",
+    "arrT": "2026-02-01T18:14:56",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "40360",
+    "stpId": "30070",
+    "stpDe": "Service toward Kimball",
+    "staNm": "Southport",
+    "rn": "417",
+    "destNm": "Kimball",
+    "arrT": "2026-02-01T18:26:37",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "40360",
+    "stpId": "30070",
+    "stpDe": "Service toward Kimball",
+    "staNm": "Southport",
+    "rn": "422",
+    "destNm": "Kimball",
+    "arrT": "2026-02-01T18:35:35",
+    "isApp": false,
+    "isDly": false
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "staId": "14920",
+    "stpId": "14920",
+    "stpDe": "Service toward Cumberland",
+    "staNm": "Belmont & Greenview",
+    "rn": "8737",
+    "destNm": "Cumberland",
+    "arrT": "2026-02-01T17:43:00",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "14920",
+    "stpId": "14920",
+    "stpDe": "Service toward Cumberland",
+    "staNm": "Belmont & Greenview",
+    "rn": "8743",
+    "destNm": "Cumberland",
+    "arrT": "2026-02-01T17:51:00",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "17833",
+    "stpId": "17833",
+    "stpDe": "Service toward Diversey/Lake Shore",
+    "staNm": "Belmont & Greenview",
+    "rn": "1394",
+    "destNm": "Diversey/Lake Shore",
+    "arrT": "2026-02-01T17:54:00",
+    "isApp": false,
+    "isDly": false
+  },
+  {
+    "staId": "17833",
+    "stpId": "17833",
+    "stpDe": "Service toward Diversey/Lake Shore",
+    "staNm": "Belmont & Greenview",
+    "rn": "8745",
+    "destNm": "Diversey/Lake Shore",
+    "arrT": "2026-02-01T17:55:00",
+    "isApp": false,
+    "isDly": false
+  }
+]
