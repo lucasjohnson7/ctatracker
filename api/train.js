@@ -1,32 +1,55 @@
-// Vercel Edge Function — CTA Train Tracker → JSON (no XML parser needed)
-// Requires env: CTA_TRAIN_KEY
-export const config = { runtime: 'edge' };
-
+// api/train.js
+export const config = { runtime: "edge" };
 
 export default async function handler(req) {
-try {
-const { searchParams } = new URL(req.url);
-const mapid = searchParams.get('mapid') || '40360'; // Southport
-const key = process.env.CTA_TRAIN_KEY;
-if (!key) return new Response(JSON.stringify({ error: 'Missing CTA_TRAIN_KEY' }), { status: 500 });
+  try {
+    // IMPORTANT: Express gives relative req.url, Edge gives absolute.
+    // This makes it work in both places.
+    const base = `http://${req.headers.get?.("host") || req.headers.host || "localhost"}`;
+    const { searchParams } = new URL(req.url, base);
 
+    const mapid = searchParams.get("mapid");
+    const max = searchParams.get("max") || "10";
+    const key = process.env.CTA_TRAIN_KEY;
 
-// Ask CTA for JSON directly via outputType=JSON (documented in Train Tracker API)
-const url = `https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx?key=${key}&mapid=${mapid}&outputType=JSON`;
-const r = await fetch(url);
-if (!r.ok) return new Response(JSON.stringify({ error: 'CTA Train API error' }), { status: 502 });
-const payload = await r.json();
-const etas = payload?.ctatt?.eta ? (Array.isArray(payload.ctatt.eta) ? payload.ctatt.eta : [payload.ctatt.eta]) : [];
+    if (!key) {
+      return new Response(JSON.stringify({ error: "Missing CTA_TRAIN_KEY" }), { status: 500 });
+    }
+    if (!mapid) {
+      return new Response(JSON.stringify({ error: "Missing mapid" }), { status: 400 });
+    }
 
+    // CTA Train Tracker Arrivals API
+    const url =
+      `https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx?outputType=JSON` +
+      `&key=${encodeURIComponent(key)}` +
+      `&mapid=${encodeURIComponent(mapid)}` +
+      `&max=${encodeURIComponent(max)}`;
 
-const rows = etas.map(e => ({
-staId: e.staId, stpId: e.stpId, stpDe: e.stpDe, staNm: e.staNm,
-rn: e.rn, destNm: e.destNm, arrT: e.arrT, isApp: e.isApp === '1', isDly: e.isDly === '1'
-}));
+    const r = await fetch(url, {
+      headers: { "User-Agent": "ctatracker/1.0 (local)" },
+      cache: "no-store",
+    });
 
+    const json = await r.json();
 
-return new Response(JSON.stringify(rows), { headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
-} catch (err) {
-return new Response(JSON.stringify({ error: 'Unhandled error', detail: String(err) }), { status: 500 });
-}
+    // Typical shape: { ctatt: { eta: [...], errCd, errNm } }
+    const root = json?.ctatt ?? {};
+    const apiErr =
+      root?.errNm ||
+      (root?.errCd && root?.errCd !== "0" ? `CTA error code ${root.errCd}` : null);
+
+    const rows = Array.isArray(root?.eta) ? root.eta : [];
+
+    // Return rows directly so your frontend can do: data.filter(...)
+    return new Response(JSON.stringify(rows), {
+      headers: {
+        "content-type": "application/json",
+        "cache-control": "no-store",
+      },
+      status: apiErr ? 502 : 200,
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+  }
 }

@@ -36,6 +36,25 @@ function json(body, status = 200) {
   });
 }
 
+// ✅ Local/Express-safe URL builder (works on Vercel too)
+function getRequestUrl(req) {
+  // If server.js shim provided nextUrl, use it (best)
+  if (req?.nextUrl instanceof URL) return req.nextUrl;
+
+  // Otherwise build an absolute base (Express gives relative req.url)
+  const host =
+    (req?.headers?.get && req.headers.get("host")) ||
+    req?.headers?.host ||
+    "localhost";
+  const proto =
+    (req?.headers?.get && req.headers.get("x-forwarded-proto")) ||
+    req?.headers?.["x-forwarded-proto"] ||
+    "http";
+
+  const raw = req?.url || "";
+  return new URL(raw, `${proto}://${host}`);
+}
+
 /* ===========================
    ESPN ENDPOINTS
    =========================== */
@@ -87,39 +106,19 @@ function formatCentralDateTime(dateIsoString) {
   return { dateText, timeText };
 }
 
-/**
- * Try to pull a numeric score from an ESPN competitor object.
- *
- * Handles:
- *   - competitor.score = "83" or 83
- *   - competitor.score = { value: 83, displayValue: "83" }
- *   - competitor.linescores[*].value / score / displayValue
- *   - competitor.statistics entries named "points", "pts", or "score"
- */
 function extractScore(competitor) {
   if (!competitor) return null;
 
-  // ---- 1) direct "score" field ----
-  if (
-    competitor.score !== undefined &&
-    competitor.score !== null
-  ) {
+  if (competitor.score !== undefined && competitor.score !== null) {
     const s = competitor.score;
 
-    // primitive string/number
     if (typeof s === "string" || typeof s === "number") {
       const n = parseInt(s, 10);
       if (Number.isFinite(n)) return n;
     }
 
-    // object shape: { value, displayValue }
     if (typeof s === "object") {
-      const candList = [
-        s.value,
-        s.displayValue,
-        s.score,
-        s.text,
-      ];
+      const candList = [s.value, s.displayValue, s.score, s.text];
       for (const cand of candList) {
         if (cand === undefined || cand === null) continue;
         const n = parseInt(String(cand), 10);
@@ -128,7 +127,6 @@ function extractScore(competitor) {
     }
   }
 
-  // ---- 2) sum of linescores (per-period scores) ----
   const lines = competitor.linescores || competitor.lineScores || [];
   if (Array.isArray(lines) && lines.length) {
     let total = 0;
@@ -139,9 +137,7 @@ function extractScore(competitor) {
         ls?.score ??
         ls?.displayValue ??
         ls?.points ??
-        (Array.isArray(ls?.statistics)
-          ? ls.statistics[0]?.value
-          : undefined);
+        (Array.isArray(ls?.statistics) ? ls.statistics[0]?.value : undefined);
 
       if (v === undefined || v === null) continue;
 
@@ -154,21 +150,11 @@ function extractScore(competitor) {
     if (found) return total;
   }
 
-  // ---- 3) statistics array (sometimes has "points" or "pts") ----
   const stats = competitor.statistics || competitor.stats || [];
   if (Array.isArray(stats)) {
     for (const s of stats) {
-      const label = (
-        s?.name ||
-        s?.label ||
-        s?.abbreviation ||
-        ""
-      ).toLowerCase();
-      if (
-        label.includes("point") ||
-        label === "pts" ||
-        label === "score"
-      ) {
+      const label = (s?.name || s?.label || s?.abbreviation || "").toLowerCase();
+      if (label.includes("point") || label === "pts" || label === "score") {
         const v = s.value ?? s.displayValue;
         if (v === undefined || v === null) continue;
         const n = parseInt(String(v), 10);
@@ -180,9 +166,6 @@ function extractScore(competitor) {
   return null;
 }
 
-/**
- * Normalize an ESPN event -> { live, next } from our team's POV.
- */
 function mapEspnEventToLiveNext(event, isOurTeam) {
   if (!event || !event.competitions || !event.competitions.length) {
     return { live: null, next: null };
@@ -200,23 +183,19 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
   const isHome = us.homeAway === "home";
 
   const statusObj =
-    (comp.status && comp.status.type) ||
-    (event.status && event.status.type) ||
-    {};
+    (comp.status && comp.status.type) || (event.status && event.status.type) || {};
   const rawState = (statusObj.state || "").toLowerCase(); // "pre" | "in" | "post"
 
   const periodNumber =
-    (comp.status && typeof comp.status.period === "number"
-      ? comp.status.period
-      : statusObj.period) ?? null;
+    (comp.status && typeof comp.status.period === "number" ? comp.status.period : statusObj.period) ??
+    null;
 
   let period = "";
   if (typeof periodNumber === "number" && periodNumber > 0) {
     period = `Q${periodNumber}`;
   }
 
-  const clock =
-    (comp.status && comp.status.displayClock) || statusObj.displayClock || "";
+  const clock = (comp.status && comp.status.displayClock) || statusObj.displayClock || "";
 
   const usScore = extractScore(us);
   const themScore = extractScore(them);
@@ -225,17 +204,13 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
 
   const teamInfo = them.team || {};
   const opponentName =
-    teamInfo.displayName ||
-    teamInfo.shortDisplayName ||
-    teamInfo.name ||
-    "Opponent";
+    teamInfo.displayName || teamInfo.shortDisplayName || teamInfo.name || "Opponent";
 
   const opponentLogo =
     Array.isArray(teamInfo.logos) && teamInfo.logos.length
       ? teamInfo.logos[0].href
       : teamInfo.logo || null;
 
-  // LIVE
   if (rawState === "in") {
     return {
       live: {
@@ -251,7 +226,6 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
     };
   }
 
-  // FINAL
   if (rawState === "post") {
     return {
       live: {
@@ -267,7 +241,6 @@ function mapEspnEventToLiveNext(event, isOurTeam) {
     };
   }
 
-  // PRE-GAME
   return {
     live: null,
     next: {
@@ -285,14 +258,8 @@ function getFirstNextEventFromTeam(teamJson) {
   const arr = team.nextEvent || [];
   if (!Array.isArray(arr) || !arr.length) return null;
 
-  return (
-    arr.find((ev) => ev.competitions && ev.competitions.length) || null
-  );
+  return arr.find((ev) => ev.competitions && ev.competitions.length) || null;
 }
-
-/* ===========================
-   TEAM-SPECIFIC HELPERS
-   =========================== */
 
 // ---------- Bulls ----------
 async function getBullsStatus() {
@@ -423,25 +390,16 @@ async function getCreightonStatus() {
 
 export default async function handler(req) {
   try {
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = getRequestUrl(req); // ✅ fixed here
     const teamKey = (searchParams.get("team") || "").toLowerCase();
 
-    if (teamKey === "bulls") {
-      return json(await getBullsStatus());
-    }
-    if (teamKey === "bears") {
-      return json(await getBearsStatus());
-    }
-    if (teamKey === "creighton") {
-      return json(await getCreightonStatus());
-    }
+    if (teamKey === "bulls") return json(await getBullsStatus());
+    if (teamKey === "bears") return json(await getBearsStatus());
+    if (teamKey === "creighton") return json(await getCreightonStatus());
 
     return json({ live: null, next: null });
   } catch (err) {
     console.error("sports error", err);
-    return json(
-      { error: "Unhandled sports error", detail: String(err) },
-      500
-    );
+    return json({ error: "Unhandled sports error", detail: String(err) }, 500);
   }
 }
