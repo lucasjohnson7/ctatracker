@@ -9,36 +9,30 @@
 
 <body>
 
-<!-- Simple top bar: just timestamp on the right -->
 <header>
   <div class="timestamp" id="timestamp">Loading…</div>
 </header>
 
-<!-- ARRIVAL LISTS (no backgrounds or panels) -->
 <section class="list">
 
-  <!-- BROWN LOOP -->
   <div class="marquee">
     <span class="station-label">Brown Line → Loop</span>
     <img src="./images/train.png" class="runner" id="trainLoopRun" />
   </div>
   <div id="trainLoopBody" class="arrival-group">Loading…</div>
 
-  <!-- BROWN KIMBALL -->
   <div class="marquee">
     <span class="station-label">Brown Line → Kimball</span>
     <img src="./images/train.png" class="runner" id="trainKimballRun" />
   </div>
   <div id="trainKimballBody" class="arrival-group">Loading…</div>
 
-  <!-- BUS EAST -->
   <div class="marquee">
     <span class="station-label">#77 Eastbound → Lake Shore</span>
     <img src="./images/bus.png" class="runner" id="busEastRun" />
   </div>
   <div id="busEastBody" class="arrival-group">Loading…</div>
 
-  <!-- BUS WEST -->
   <div class="marquee">
     <span class="station-label">#77 Westbound → Cumberland</span>
     <img src="./images/bus.png" class="runner" id="busWestRun" />
@@ -47,9 +41,7 @@
 
 </section>
 
-<!-- Bottom row: Music (left) + Weather / Date (top-right) + Sports (bottom-right) -->
 <section class="bottom-row">
-  <!-- Lock-screen style Now Playing / Slideshow -->
   <section class="nowplaying" id="nowplaying" aria-live="polite">
     <img id="npArt" class="np-art" alt="Album art" />
     <div class="np-meta">
@@ -61,10 +53,8 @@
     </div>
   </section>
 
-  <!-- Right-hand column: weather + date/time on top, sports full width below -->
   <div class="info-right">
     <div class="info-top">
-      <!-- Weather card -->
       <div class="weather" id="weather">
         <img class="wx-icon" src="" alt="weather icon" />
         <div class="weather-info">
@@ -73,17 +63,14 @@
         </div>
       </div>
 
-      <!-- Date / Time card -->
       <div class="datetime-card">
         <div class="dt-date" id="dtDate">Thu, Nov 13</div>
         <div class="dt-time" id="dtTime">1:49 PM</div>
       </div>
     </div>
 
-    <!-- Sports card (wide, under both) -->
     <div class="sports-card" id="sportsCard">
 
-      <!-- Creighton row -->
       <div class="sports-team scorebug" id="sports-creighton">
         <div class="scorebug-team scorebug-away">
           <div class="team-inner">
@@ -108,7 +95,6 @@
         </div>
       </div>
 
-      <!-- Bulls row -->
       <div class="sports-team scorebug" id="sports-bulls">
         <div class="scorebug-team scorebug-away">
           <div class="team-inner">
@@ -133,7 +119,6 @@
         </div>
       </div>
 
-      <!-- Bears row -->
       <div class="sports-team scorebug" id="sports-bears">
         <div class="scorebug-team scorebug-away">
           <div class="team-inner">
@@ -157,15 +142,15 @@
           </div>
         </div>
       </div>
-    </div>
 
+    </div>
   </div>
 </section>
 
 <script>
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
 
-/* ========= Slideshow config (for when nothing is playing) ========= */
+/* ========= Slideshow config ========= */
 const SLIDESHOW_IMAGES = [
   'slideshow/3F4F1713-D60C-47E0-9CF1-B136266ED3F1.JPG',
   'slideshow/GEDC2917.JPG',
@@ -194,16 +179,13 @@ const SLIDESHOW_IMAGES = [
   'slideshow/IMG_8686.jpeg',
   'slideshow/IMG_9362.jpeg'
 ];
-
-const SLIDESHOW_INTERVAL_MS = 25000; // 25 seconds per photo
+const SLIDESHOW_INTERVAL_MS = 25000;
 
 let slideshowIndex = 0;
 let slideshowTimer = null;
 
 function startSlideshow(){
   if (!SLIDESHOW_IMAGES.length) return;
-
-  // If already running, don't restart or jump ahead
   if (slideshowTimer) return;
 
   const art      = document.getElementById('npArt');
@@ -212,25 +194,15 @@ function startSlideshow(){
   const titleEl  = document.getElementById('npTitle');
   const artistEl = document.getElementById('npArtist');
   const npBox    = document.getElementById('nowplaying');
-
   if (!art) return;
 
-  // hide the music text UI, just show photos
-  if (meta)    meta.style.display = 'none';
-  if (bar)     bar.hidden = true;
+  if (meta) meta.style.display = 'none';
+  if (bar)  bar.hidden = true;
 
-  if (titleEl){
-    titleEl.classList.remove('scrolling');
-    titleEl.innerHTML = '';
-  }
-  if (artistEl){
-    artistEl.classList.remove('scrolling');
-    artistEl.innerHTML = '';
-  }
+  if (titleEl){ titleEl.classList.remove('scrolling'); titleEl.innerHTML=''; }
+  if (artistEl){ artistEl.classList.remove('scrolling'); artistEl.innerHTML=''; }
 
   art.style.display = 'block';
-
-  // enlarge container for slideshow mode
   if (npBox) npBox.classList.add('slideshow-mode');
 
   function showSlide(){
@@ -239,7 +211,6 @@ function startSlideshow(){
     slideshowIndex = (slideshowIndex + 1) % SLIDESHOW_IMAGES.length;
   }
 
-  // first image immediately, then every N seconds
   showSlide();
   slideshowTimer = setInterval(showSlide, SLIDESHOW_INTERVAL_MS);
 }
@@ -273,46 +244,38 @@ const setStamp = ()=>{
   }
 };
 
-/* ===== Weather (Open-Meteo) using PNG icons ===== */
+/* ===== Weather (Open-Meteo) ===== */
 const WX_LAT=41.94, WX_LON=-87.66;
 const WX_URL=`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
 
-// ----- Auto Night Mode (6:01pm–5:59am) -----
 function isNightNow(){
   const now = new Date();
   const h = now.getHours();
   const m = now.getMinutes();
-  // night if 18:01–23:59 or 00:00–05:59
   return (h > 18) || (h === 18 && m >= 1) || (h < 6);
 }
-
 function applyThemeByTime(){
-  const root = document.documentElement; // <html>
+  const root = document.documentElement;
   if (isNightNow()) root.classList.add('night');
   else root.classList.remove('night');
 }
 applyThemeByTime();
 setInterval(applyThemeByTime, 5 * 60 * 1000);
 
-// Map Open-Meteo codes to your filenames
 function wxIconFile(code, now=new Date()){
   const h=now.getHours(), m=now.getMinutes();
   const isDay=(h>6 && h<18)||(h===6)||(h===18&&m===0);
-
-  if (code === 0) return isDay ? './images/sun.png' : './images/moon.png';              // clear
-  if ([1,2].includes(code)) return './images/partlycloudy.png';               // mostly clear / few clouds
-  if (code === 3) return './images/cloudy.png';                               // overcast / partly cloudy
-  if ([45,48].includes(code)) return './images/cloudy.png';                   // fog
-  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return './images/rain.png';  // drizzle/rain/showers
-  if ([71,73,75,77,85,86].includes(code)) return './images/snow.png';         // snow
-  if ([95,96,99].includes(code)) return './images/rain.png';                  // t-storms fallback
+  if (code === 0) return isDay ? './images/sun.png' : './images/moon.png';
+  if ([1,2].includes(code)) return './images/partlycloudy.png';
+  if (code === 3) return './images/cloudy.png';
+  if ([45,48].includes(code)) return './images/cloudy.png';
+  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return './images/rain.png';
+  if ([71,73,75,77,85,86].includes(code)) return './images/snow.png';
+  if ([95,96,99].includes(code)) return './images/rain.png';
   return './images/cloudy.png';
 }
-
-function wxText(code, now=new Date()){
-  const h=now.getHours(), m=now.getMinutes();
-  const isDay=(h>6 && h<18)||(h===6)||(h===18&&m===0);
-  if (code === 0) return isDay ? 'Clear' : 'Clear';
+function wxText(code){
+  if (code === 0) return 'Clear';
   if ([1,2].includes(code)) return 'Mostly clear';
   if (code === 3) return 'Partly cloudy';
   if ([45,48].includes(code)) return 'Foggy';
@@ -324,7 +287,6 @@ function wxText(code, now=new Date()){
   if ([95,96,99].includes(code)) return 'Thunderstorms';
   return 'Cloudy';
 }
-
 async function loadWeather(){
   try{
     const j=await (await fetch(WX_URL,{cache:'no-store'})).json();
@@ -335,7 +297,7 @@ async function loadWeather(){
     const text = wxText(code);
 
     const el=document.getElementById("weather");
-    el.querySelector(".wx-icon").src = `./${icon}`;
+    el.querySelector(".wx-icon").src = icon;
     el.querySelector(".wx-icon").alt = text;
     el.querySelector(".wx-temp").textContent = t+"°F";
     el.querySelector(".wx-desc").textContent = text;
@@ -346,7 +308,7 @@ async function loadWeather(){
   }
 }
 
-/* ===== Runner controller (left→right; park; leave) ===== */
+/* ===== Runner controller ===== */
 function controlRunner(el, due){
   if(!el) return;
   const state=el.dataset.state||"idle";
@@ -380,7 +342,9 @@ function controlRunner(el, due){
 }
 
 async function fetchJSON(url){
-  const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw 0; return r.json();
+  const r=await fetch(url,{cache:'no-store'});
+  if(!r.ok) throw new Error("HTTP "+r.status+" for "+url);
+  return r.json();
 }
 
 /* Train + Bus rendering */
@@ -410,12 +374,15 @@ function renderList(rows, target, runner, maxRows){
 
 async function loadTrains(){
   try{
-    const data=await fetchJSON("/api/train?mapid=40360");
-    const loopRows    = data.filter(x=>/Loop/i.test(x.stpDe||""));
-    const kimballRows = data.filter(x=>/Kimball/i.test(x.stpDe||""));
+    // NEW: read from local JSON written by poller.py
+    const data = await fetchJSON("./data/train.json");
+    const rows = data.rows || [];
+    const loopRows    = rows.filter(x=>/Loop/i.test(x.stpDe||""));
+    const kimballRows = rows.filter(x=>/Kimball/i.test(x.stpDe||""));
     renderList(loopRows,    "#trainLoopBody",   "#trainLoopRun", 2);
     renderList(kimballRows, "#trainKimballBody","#trainKimballRun", 3);
-  }catch{
+  }catch(e){
+    console.error("train load error", e);
     document.querySelector("#trainLoopBody").innerHTML="<div class='row empty'>Error</div>";
     document.querySelector("#trainKimballBody").innerHTML="<div class='row empty'>Error</div>";
   }
@@ -447,19 +414,21 @@ function renderBus(rows, target, runner, maxRows){
 
 async function loadBuses(){
   try{
+    // NEW: read from local JSON written by poller.py
     const [east,west]=await Promise.all([
-      fetchJSON("/api/bus?stpid=17833&rt=77"),
-      fetchJSON("/api/bus?stpid=14920&rt=77")
+      fetchJSON("./data/bus_east.json"),
+      fetchJSON("./data/bus_west.json")
     ]);
     renderBus(east.rows||[], "#busEastBody", "#busEastRun", 3);
     renderBus(west.rows||[], "#busWestBody", "#busWestRun", 3);
-  }catch{
+  }catch(e){
+    console.error("bus load error", e);
     document.querySelector("#busEastBody").innerHTML="<div class='row empty'>Error</div>";
     document.querySelector("#busWestBody").innerHTML="<div class='row empty'>Error</div>";
   }
 }
 
-/* ===== Scrolling text helper for Now Playing ===== */
+/* ===== Scrolling text helper ===== */
 function setScrollingText(el, text){
   el.style.setProperty('--scroll-distance', '0px');
   el.classList.remove('scrolling');
@@ -482,29 +451,12 @@ function setScrollingText(el, text){
   });
 }
 
-/* ===== Sports card (Creighton / Bulls / Bears — scorebug layout) ===== */
-
+/* ===== Sports ===== */
 const SPORTS_TEAMS = [
-  {
-    id: 'sports-creighton',
-    label: 'Creighton Bluejays',
-    logo: './images/creighton.png',
-    key: 'creighton'
-  },
-  {
-    id: 'sports-bulls',
-    label: 'Chicago Bulls',
-    logo: './images/bulls.png',
-    key: 'bulls'
-  },
-  {
-    id: 'sports-bears',
-    label: 'Chicago Bears',
-    logo: './images/bears.png',
-    key: 'bears'
-  }
+  { id:'sports-creighton', label:'Creighton Bluejays', logo:'./images/creighton.png', key:'creighton' },
+  { id:'sports-bulls',     label:'Chicago Bulls',      logo:'./images/bulls.png',     key:'bulls' },
+  { id:'sports-bears',     label:'Chicago Bears',      logo:'./images/bears.png',     key:'bears' }
 ];
-
 const SPORTS_STATE = {};
 
 function formatDateLabel(dateText){
@@ -512,33 +464,20 @@ function formatDateLabel(dateText){
   const today = new Date();
   const guess = new Date(dateText + ' ' + today.getFullYear());
   if (!isNaN(guess.getTime())){
-    const sameDay =
-      guess.getMonth() === today.getMonth() &&
-      guess.getDate() === today.getDate();
+    const sameDay = guess.getMonth() === today.getMonth() && guess.getDate() === today.getDate();
     if (sameDay) return 'TODAY';
-    const m = guess.getMonth() + 1;
-    const d = guess.getDate();
-    return `${m}/${d}`;
+    return (guess.getMonth()+1) + "/" + guess.getDate();
   }
   return dateText;
 }
-
 function gameSortKey(data){
   if (!data) return Number.POSITIVE_INFINITY;
-
-  if (data.live) {
-    return 0;
-  }
-
+  if (data.live) return 0;
   const n = data.next;
   if (!n || !n.date) return Number.POSITIVE_INFINITY;
-
   const today = new Date();
-  const baseYear = today.getFullYear();
-  const dateString = `${n.date} ${baseYear} ${n.time || ''}`;
-  const guess = new Date(dateString);
+  const guess = new Date(n.date + " " + today.getFullYear() + " " + (n.time || ""));
   if (!isNaN(guess.getTime())) return guess.getTime();
-
   return Number.POSITIVE_INFINITY;
 }
 
@@ -561,20 +500,15 @@ function updateSportsRow(team, data){
   homeScoreEl.textContent = '–';
   line1El.textContent     = 'No game today.';
   line2El.textContent     = '';
-
   if (!data || (!data.live && !data.next)){
     awayNameEl.textContent = team.label;
-    if (awayLogoEl && team.logo){
-      awayLogoEl.src = team.logo;
-    }
-    if (homeLogoEl){
-      homeLogoEl.removeAttribute('src');
-    }
+    if (awayLogoEl && team.logo) awayLogoEl.src = team.logo;
+    if (homeLogoEl) homeLogoEl.removeAttribute('src');
     return;
   }
 
   const live = data.live || null;
-  const next = !live && data.next ? data.next : null;
+  const next = (!live && data.next) ? data.next : null;
   const payload = live || next;
 
   const isHome = (payload.homeAway || 'vs') === 'vs';
@@ -584,54 +518,35 @@ function updateSportsRow(team, data){
   const oppLogo = payload.opponentLogo || '';
 
   let homeName, homeLogo, awayName, awayLogo;
-
   if (isHome){
-    homeName = ourName;
-    homeLogo = ourLogo;
-    awayName = oppName;
-    awayLogo = oppLogo;
+    homeName = ourName; homeLogo = ourLogo;
+    awayName = oppName; awayLogo = oppLogo;
   } else {
-    awayName = ourName;
-    awayLogo = ourLogo;
-    homeName = oppName;
-    homeLogo = oppLogo;
+    awayName = ourName; awayLogo = ourLogo;
+    homeName = oppName; homeLogo = oppLogo;
   }
 
   awayNameEl.textContent = awayName;
   homeNameEl.textContent = homeName;
 
   if (awayLogoEl){
-    const resolvedAwayLogo = awayLogo || (awayName === ourName ? ourLogo : '');
-    if (resolvedAwayLogo) awayLogoEl.src = resolvedAwayLogo;
-    else awayLogoEl.removeAttribute('src');
+    const resolved = awayLogo || (awayName === ourName ? ourLogo : '');
+    if (resolved) awayLogoEl.src = resolved; else awayLogoEl.removeAttribute('src');
   }
   if (homeLogoEl){
-    const resolvedHomeLogo = homeLogo || (homeName === ourName ? ourLogo : '');
-    if (resolvedHomeLogo) homeLogoEl.src = resolvedHomeLogo;
-    else homeLogoEl.removeAttribute('src');
+    const resolved = homeLogo || (homeName === ourName ? ourLogo : '');
+    if (resolved) homeLogoEl.src = resolved; else homeLogoEl.removeAttribute('src');
   }
 
   if (live){
-    const usScore =
-      typeof live.usScore === 'number' ? live.usScore : null;
-    const themScore =
-      typeof live.themScore === 'number' ? live.themScore : null;
+    const usScore = (typeof live.usScore === 'number') ? live.usScore : null;
+    const themScore = (typeof live.themScore === 'number') ? live.themScore : null;
+    let homeScore=null, awayScore=null;
+    if (isHome){ homeScore=usScore; awayScore=themScore; }
+    else { homeScore=themScore; awayScore=usScore; }
 
-    let homeScore = null;
-    let awayScore = null;
-
-    if (isHome){
-      homeScore = usScore;
-      awayScore = themScore;
-    } else {
-      homeScore = themScore;
-      awayScore = usScore;
-    }
-
-    awayScoreEl.textContent =
-      Number.isFinite(awayScore) ? awayScore : '–';
-    homeScoreEl.textContent =
-      Number.isFinite(homeScore) ? homeScore : '–';
+    awayScoreEl.textContent = Number.isFinite(awayScore) ? awayScore : '–';
+    homeScoreEl.textContent = Number.isFinite(homeScore) ? homeScore : '–';
 
     const statusBits = [live.period, live.clock].filter(Boolean);
     line1El.textContent = statusBits.join(' ').trim() || 'LIVE';
@@ -655,10 +570,7 @@ function renderSportsFromState(){
 
   states.forEach(({team, data}) => updateSportsRow(team, data));
 
-  const sorted = states.slice().sort(
-    (a, b) => gameSortKey(a.data) - gameSortKey(b.data)
-  );
-
+  const sorted = states.slice().sort((a,b)=> gameSortKey(a.data) - gameSortKey(b.data));
   sorted.forEach(({team}) => {
     const row = document.getElementById(team.id);
     if (row) card.appendChild(row);
@@ -667,47 +579,25 @@ function renderSportsFromState(){
 
 async function fetchTeamStatus(team){
   try{
-    const res = await fetch(`/api/sports?team=${encodeURIComponent(team.key)}`, {
-      cache: 'no-store'
-    });
+    // NEW: local JSON written by poller.py
+    const res = await fetch(`./data/sports_${encodeURIComponent(team.key)}.json`, { cache: 'no-store' });
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
     SPORTS_STATE[team.key] = { data };
-  } catch(e){
+  }catch(e){
     console.error('sports error', team.key, e);
     SPORTS_STATE[team.key] = { data: null };
   }
   renderSportsFromState();
 }
-
-function loadSports(){
-  SPORTS_TEAMS.forEach(fetchTeamStatus);
-}
-
-// refresh periodically (e.g. every 2 min)
+function loadSports(){ SPORTS_TEAMS.forEach(fetchTeamStatus); }
 setInterval(loadSports, 120000);
 
-/* cadence */
-async function refresh(){
-  await Promise.all([loadTrains(), loadBuses()]);
-  setStamp();
-}
-refresh();
-setInterval(refresh,20000);
-
-loadWeather();
-setInterval(loadWeather,300000);
-
-function tickClocks(){
-  setStamp();
-}
-tickClocks();
-setInterval(tickClocks, 60000);
-
-/* ===== Now Playing + slideshow ===== */
+/* ===== Now Playing ===== */
 async function loadNowPlaying(){
   try{
-    const r = await fetch('/api/sonos/now-playing', { cache:'no-store' });
+    // NEW: local JSON written by poller.py
+    const r = await fetch('./data/now_playing.json', { cache:'no-store' });
     if (!r.ok) throw new Error('now-playing error');
     const j = await r.json();
 
@@ -718,59 +608,52 @@ async function loadNowPlaying(){
     const fill     = document.getElementById('npFill');
     const meta     = document.querySelector('.np-meta');
 
-    // Treat "Spotify" (or blank) as idle, even if j.playing is true
     const hasRealTrack =
-      j &&
-      j.playing &&
-      j.title &&
-      j.title.toLowerCase() !== 'spotify';
+      j && j.playing && j.title && j.title.toLowerCase() !== 'spotify';
 
     if (hasRealTrack){
-      // back to music mode
       stopSlideshow();
       if (meta) meta.style.display = 'block';
 
       setScrollingText(titleEl, j.title || 'Playing…');
-      setScrollingText(
-        artistEl,
-        [j.artist, j.album].filter(Boolean).join(' — ') || '—'
-      );
+      setScrollingText(artistEl, [j.artist, j.album].filter(Boolean).join(' — ') || '—');
 
-      if (j.image) {
-        art.src = j.image;
-        art.style.display = 'block';
-      } else {
-        art.removeAttribute('src');
-        art.style.display = 'none';
-      }
+      if (j.image) { art.src = j.image; art.style.display = 'block'; }
+      else { art.removeAttribute('src'); art.style.display = 'none'; }
 
-      if (
-        Number.isFinite(j.positionMs) &&
-        Number.isFinite(j.durationMs) &&
-        j.durationMs > 0
-      ){
-        const pct = Math.max(
-          0,
-          Math.min(100, (j.positionMs / j.durationMs) * 100)
-        );
+      if (Number.isFinite(j.positionMs) && Number.isFinite(j.durationMs) && j.durationMs > 0){
+        const pct = Math.max(0, Math.min(100, (j.positionMs / j.durationMs) * 100));
         fill.style.width = pct.toFixed(1) + '%';
         bar.hidden = false;
       } else {
         bar.hidden = true;
       }
     } else {
-      // nothing meaningful playing → slideshow mode
       startSlideshow();
     }
   } catch(e){
     console.error(e);
-    // If the API blows up, fall back to slideshow instead of stale text
     startSlideshow();
   }
 }
 
+/* cadence */
+async function refresh(){
+  await Promise.all([loadTrains(), loadBuses()]);
+  setStamp();
+}
+refresh();
+setInterval(refresh, 20000);
+
+loadWeather();
+setInterval(loadWeather, 300000);
+
+setStamp();
+setInterval(setStamp, 60000);
+
 loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
+
 loadSports();
 </script>
 
