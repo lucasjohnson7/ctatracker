@@ -3,6 +3,7 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import { handleGet as pullupGet, handleInc as pullupInc, handleDec as pullupDec } from "./api/pullups.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -112,6 +113,11 @@ app.get("/api/sonos/callback", (req, res) =>
 app.get("/api/sonos/now-playing", (req, res) =>
   callHandler(path.join(__dirname, "api", "sonos", "now-playing.js"), req, res)
 );
+
+// Pull-ups
+app.get("/api/pullups", pullupGet);
+app.post("/api/pullups/:person/inc", pullupInc);
+app.post("/api/pullups/:person/dec", pullupDec);
 
 // ----------------------------------------
 

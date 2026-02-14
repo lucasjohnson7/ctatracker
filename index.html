@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="1800" />
   <link rel="stylesheet" href="style.css" />
   <title>CTA Wall — Southport</title>
 </head>
@@ -144,6 +145,18 @@
       </div>
 
     </div>
+  </div>
+</section>
+
+<section class="pullup-card">
+  <div class="pullup-person">
+    <div class="pullup-initial">Colin</div>
+    <div class="pullup-count" id="pullupColin">0</div>
+  </div>
+  <div class="pullup-divider"></div>
+  <div class="pullup-person">
+    <div class="pullup-initial">Lucas</div>
+    <div class="pullup-count" id="pullupLucas">0</div>
   </div>
 </section>
 
@@ -637,6 +650,9 @@ async function loadNowPlaying(){
   }
 }
 
+/* Full page reload every 30 min to reclaim Chromium memory */
+setTimeout(()=> location.reload(), 30 * 60 * 1000);
+
 /* cadence */
 async function refresh(){
   await Promise.all([loadTrains(), loadBuses()]);
@@ -655,6 +671,42 @@ loadNowPlaying();
 setInterval(loadNowPlaying, 10000);
 
 loadSports();
+
+/* ===== Pull-up Counter ===== */
+function bumpAnim(el){
+  el.classList.remove('pullup-bump');
+  void el.offsetWidth;
+  el.classList.add('pullup-bump');
+}
+
+async function loadPullups(){
+  try{
+    const j=await(await fetch('/api/pullups',{cache:'no-store'})).json();
+    document.getElementById('pullupColin').textContent=j.colin||0;
+    document.getElementById('pullupLucas').textContent=j.lucas||0;
+  }catch(e){ console.error('pullup load error',e); }
+}
+
+async function pullupAction(person,action){
+  try{
+    const j=await(await fetch(`/api/pullups/${person}/${action}`,{method:'POST'})).json();
+    const el=document.getElementById(person==='colin'?'pullupColin':'pullupLucas');
+    el.textContent=j.count;
+    bumpAnim(el);
+  }catch(e){ console.error('pullup action error',e); }
+}
+
+document.addEventListener('keydown',(e)=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  const k=e.key.toUpperCase();
+  if(k==='C') pullupAction('colin','inc');
+  else if(k==='X') pullupAction('colin','dec');
+  else if(k==='L') pullupAction('lucas','inc');
+  else if(k==='K') pullupAction('lucas','dec');
+});
+
+loadPullups();
+setInterval(loadPullups, 60000);
 </script>
 
 </body>
