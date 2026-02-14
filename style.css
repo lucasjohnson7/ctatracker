@@ -498,3 +498,67 @@ header{
   max-height: 450px;  /* choose your max size */
   border-radius: 20px;
 }
+
+/* ===========================
+   PULL-UP COUNTER
+   =========================== */
+
+.pullup-card{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  padding:8px 24px;
+  border-radius:16px;
+  background:var(--pill-bg);
+  border:1px solid var(--pill-border);
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+
+.pullup-person{
+  display:flex;
+  flex-direction:row;
+  align-items:baseline;
+  gap:10px;
+  flex:1 1 0;
+  justify-content:center;
+}
+
+.pullup-initial{
+  font-size:20px;
+  font-weight:900;
+  opacity:.7;
+  letter-spacing:1px;
+}
+
+.pullup-count{
+  font-size:48px;
+  font-weight:900;
+  line-height:1;
+}
+
+.pullup-divider{
+  width:1px;
+  height:50px;
+  background:var(--pill-border);
+  margin:0 24px;
+}
+
+@keyframes pullup-bump{
+  0%  { transform:scale(1); }
+  30% { transform:scale(1.25); }
+  100%{ transform:scale(1); }
+}
+
+.pullup-bump{
+  animation:pullup-bump .25s ease-out;
+}
+
+@media (max-width: 680px){
+  .pullup-card{
+    padding:12px 16px;
+  }
+  .pullup-count{
+    font-size:48px;
+  }
+}

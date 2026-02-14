@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/colinrecker/Projects/ctatracker show:*)",
+      "Bash(git -C /Users/colinrecker/Projects/ctatracker log --all --oneline --grep=\"cron\\\\|systemd\\\\|service\\\\|startup\\\\|pi\" -i)",
+      "Bash(git -C /Users/colinrecker/Projects/ctatracker log --all -p --grep=\"poller\")",
+      "Bash(git -C /Users/colinrecker/Projects/ctatracker log --all -p)",
+      "Bash(ssh:*)",
+      "Bash(rsync:*)",
+      "Bash(scp:*)"
+    ]
+  }
+}

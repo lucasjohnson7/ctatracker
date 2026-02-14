@@ -1,0 +1,1 @@
+{"rows": [], "error": "URL can't contain control characters. '/api/1.0/ttarrivals.aspx?key=41c32ad7db894c02a4dab3cbcc823ee9\\r&mapid=40360&outputType=JSON' (found at least '\\r')", "updatedAt": "2026-02-05T23:51:34"}

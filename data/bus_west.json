@@ -1,0 +1,1 @@
+{"rows": [], "error": "URL can't contain control characters. '/bustime/api/v3/getpredictions?format=json&key=iJwUqTWe32QbEpEF5LM8sBrDF\\r&rt=77&stpid=14920&top=6' (found at least '\\r')", "updatedAt": "2026-02-05T23:51:34"}
