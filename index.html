@@ -1078,8 +1078,6 @@ async function loadCommute() {
           homeReturnTs:       officeDeptTs + bikeFromMetra * 60 + next.arlingtonMins * 60 + bikeToMetra * 60,
         };
 
-        if (bikeEtaEl) bikeEtaEl.textContent = '';
-
         const leaveInMins = Math.round((next.depTime - bikeToMetra * 60 - now.getTime() / 1000) / 60);
         if (leaveEl) {
           if (leaveInMins <= 0) {
@@ -1088,6 +1086,23 @@ async function loadCommute() {
           } else {
             leaveEl.textContent = `Leave in ${leaveInMins} min`;
             leaveEl.className = leaveInMins <= 5 ? 'commute-leave urgent' : 'commute-leave';
+          }
+        }
+
+        if (bikeEtaEl) {
+          bikeEtaEl.textContent = '';
+          if (leaveInMins < -2) {
+            // Missed this train's bike window — surface the following train's leave-by time
+            const metraRows = md.rows.filter(r => r.arlingtonMins != null);
+            const following = metraRows[metraRows.indexOf(next) + 1];
+            if (following) {
+              const followingLeaveInMins = Math.round((following.depTime - bikeToMetra * 60 - now.getTime() / 1000) / 60);
+              if (followingLeaveInMins > 0) {
+                bikeEtaEl.textContent = `Next: leave in ${followingLeaveInMins} min`;
+              } else if (followingLeaveInMins === 0) {
+                bikeEtaEl.textContent = 'Next: leave now!';
+              }
+            }
           }
         }
       } else {
