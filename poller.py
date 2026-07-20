@@ -58,18 +58,6 @@ ESPN_BULLS_TEAM = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/
 ESPN_BEARS_TEAM = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/chi"
 ESPN_CREIGHTON_TEAM = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/156"
 
-# Blue Line: Belmont (Kimball & Belmont) → Rosemont, O'Hare-bound
-BLUE_BELMONT_MAPID  = "40060"
-BLUE_ROSEMONT_MAPID = "40820"
-
-# Pace 600 West: Rosemont CTA → Northwest Transportation Center
-PACE_ROUTE_ID         = 141
-PACE_DIR_ID           = 4      # West
-PACE_ROSEMONT_STOP    = 8944
-PACE_ROSEMONT_TP      = 414
-PACE_NW_TRANS_STOP    = 23427
-PACE_NW_TRANS_TP      = 392
-
 # Polling cadences
 TRANSIT_INTERVAL  = 20   # seconds
 SPORTS_INTERVAL   = 120  # seconds
@@ -198,68 +186,6 @@ def fetch_cta_bus_predictions(stpid, rt="77", top="6"):
             "updatedAt": now_iso(),
         }
 
-    except Exception as e:
-        return {"rows": [], "error": str(e), "updatedAt": now_iso()}
-
-
-# ===== Blue Line timing =====
-
-def _parse_cta_arr_time(arr_t):
-    """Parse CTA arrT string '2026-04-14T23:29:06' to unix timestamp."""
-    try:
-        return datetime.datetime.strptime(arr_t, "%Y-%m-%dT%H:%M:%S").timestamp()
-    except Exception:
-        return None
-
-
-def _blue_ohare_arrivals(mapid):
-    """Return {rn: unix_timestamp} for next O'Hare-bound Blue Line trains at mapid."""
-    url = (
-        "https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx"
-        f"?key={CTA_TRAIN_KEY}&mapid={mapid}&rt=Blue&outputType=JSON&max=12"
-    )
-    j = http_get_json(url)
-    rows = (j.get("ctatt") or {}).get("eta") or []
-    result = {}
-    for x in rows:
-        dest = x.get("destNm", "")
-        if "O'Hare" not in dest and "OHare" not in dest and "O Hare" not in dest:
-            continue
-        rn = x.get("rn")
-        arr_t = x.get("arrT")
-        if rn and arr_t:
-            ts = _parse_cta_arr_time(arr_t)
-            if ts and rn not in result:
-                result[rn] = ts
-    return result
-
-
-def fetch_blue_line_timing():
-    if not CTA_TRAIN_KEY:
-        return {"rows": [], "error": "Missing CTA_TRAIN_KEY", "updatedAt": now_iso()}
-    try:
-        now_ts = time.time()
-        belmont  = _blue_ohare_arrivals(BLUE_BELMONT_MAPID)
-        rosemont = _blue_ohare_arrivals(BLUE_ROSEMONT_MAPID)
-
-        rows = []
-        for rn, belmont_ts in belmont.items():
-            if belmont_ts < now_ts - 60:
-                continue
-            rosemont_ts = rosemont.get(rn)
-            if rosemont_ts is None or rosemont_ts <= belmont_ts:
-                continue
-            ride_mins = round((rosemont_ts - belmont_ts) / 60)
-            rows.append({
-                "rn":          rn,
-                "belmontArr":  belmont_ts,
-                "rosemontArr": rosemont_ts,
-                "rideMins":    ride_mins,
-                "belmontMins": max(0, round((belmont_ts - now_ts) / 60)),
-            })
-
-        rows.sort(key=lambda x: x["belmontArr"])
-        return {"rows": rows[:6], "error": None, "updatedAt": now_iso()}
     except Exception as e:
         return {"rows": [], "error": str(e), "updatedAt": now_iso()}
 
@@ -579,131 +505,6 @@ def fetch_metra_clybourn():
                 deduped.append(r)
 
         return {"rows": deduped[:6], "error": None, "updatedAt": now_iso()}
-
-    except Exception as e:
-        return {"rows": [], "error": str(e), "updatedAt": now_iso()}
-
-
-# ===== Pace =====
-
-def _pace_post(method, body):
-    return http_post_json(
-        f"https://tmweb.pacebus.com/TMWebWatch/Arrivals.aspx/{method}",
-        body,
-        headers={"Content-Type": "application/json; charset=utf-8"},
-    )
-
-
-def _parse_pace_crossing_time(crossing):
-    """Try every known TransitMaster field name and return a naive datetime or None."""
-    now = datetime.datetime.now()
-
-    # Field name candidates (case variants seen across deployments)
-    for tf in ("PredTime", "predTime", "SchedTime", "schedTime", "ArrTime", "arrTime", "DepTime", "depTime"):
-        raw = crossing.get(tf)
-        if not raw:
-            continue
-        raw = str(raw).strip()
-
-        # Period may be embedded ("6:45 am") or in a sibling field
-        period = ""
-        for pf in ("Period", "period", "Meridiem", "meridiem", "AMPM", "ampm"):
-            p = crossing.get(pf)
-            if p:
-                period = str(p).strip().lower()
-                break
-
-        # Strip embedded period from time string
-        for suf in (" am", " pm", "am", "pm"):
-            if raw.lower().endswith(suf):
-                if not period:
-                    period = suf.strip()
-                raw = raw[: -len(suf)].strip()
-                break
-
-        parts = raw.split(":")
-        if len(parts) < 2:
-            continue
-        try:
-            h, m = int(parts[0]), int(parts[1])
-        except ValueError:
-            continue
-
-        if period == "pm" and h != 12:
-            h += 12
-        elif period == "am" and h == 12:
-            h = 0
-
-        if not (0 <= h <= 23 and 0 <= m <= 59):
-            continue
-
-        dt = now.replace(hour=h, minute=m, second=0, microsecond=0)
-        # If more than 2 h in the past, it must be next-day midnight wrap
-        if dt.timestamp() < now.timestamp() - 7200:
-            dt += datetime.timedelta(days=1)
-        return dt
-
-    return None
-
-
-def _extract_crossings(resp):
-    try:
-        return resp["d"]["routeStops"][0]["stops"][0].get("crossings") or []
-    except (KeyError, IndexError, TypeError):
-        return []
-
-
-def fetch_pace():
-    try:
-        dep_resp = _pace_post("getStopTimes", {
-            "routeID":      PACE_ROUTE_ID,
-            "directionID":  PACE_DIR_ID,
-            "stopID":       PACE_ROSEMONT_STOP,
-            "tpID":         PACE_ROSEMONT_TP,
-            "useArrivalTimes": False,
-        })
-        arr_resp = _pace_post("getStopTimes", {
-            "routeID":      PACE_ROUTE_ID,
-            "directionID":  PACE_DIR_ID,
-            "stopID":       PACE_NW_TRANS_STOP,
-            "tpID":         PACE_NW_TRANS_TP,
-            "useArrivalTimes": True,
-        })
-
-        dep_crossings = _extract_crossings(dep_resp)
-        arr_crossings = _extract_crossings(arr_resp)
-
-        now_ts = time.time()
-        rows = []
-
-        for i, dc in enumerate(dep_crossings):
-            dep_dt = _parse_pace_crossing_time(dc)
-            if dep_dt is None:
-                continue
-            dep_unix = dep_dt.timestamp()
-            if dep_unix < now_ts - 60:
-                continue
-
-            arr_unix = None
-            ride_mins = None
-            if i < len(arr_crossings):
-                arr_dt = _parse_pace_crossing_time(arr_crossings[i])
-                if arr_dt is not None:
-                    arr_unix = arr_dt.timestamp()
-                    ride_mins = round((arr_unix - dep_unix) / 60)
-
-            rows.append({
-                "depTime":  dep_unix,
-                "arrTime":  arr_unix,
-                "mins":     max(0, round((dep_unix - now_ts) / 60)),
-                "rideMins": ride_mins,
-            })
-
-        # If we got no rows at all, log the raw crossings for debugging
-        if not rows and dep_crossings:
-            print(f"Pace: could not parse crossings — sample: {dep_crossings[0]}")
-
-        return {"rows": rows[:4], "error": None, "updatedAt": now_iso()}
 
     except Exception as e:
         return {"rows": [], "error": str(e), "updatedAt": now_iso()}
@@ -1206,15 +1007,6 @@ def poll_transit():
     else:
         metra = empty
     write_json_atomic(os.path.join(DATA_DIR, "metra_clybourn.json"), metra)
-
-    if layout.get("commute", True):
-        pace = fetch_pace()
-        blue = fetch_blue_line_timing()
-    else:
-        pace = {"rows": [], "error": None, "updatedAt": now_iso()}
-        blue = {"rows": [], "error": None, "updatedAt": now_iso()}
-    write_json_atomic(os.path.join(DATA_DIR, "pace_600.json"), pace)
-    write_json_atomic(os.path.join(DATA_DIR, "blue_line.json"), blue)
 
     if layout.get("nowPlaying", True):
         try:

@@ -356,38 +356,6 @@
 </div>
 
 <div class="card">
-  <div class="card-title">Commute — CTA (Blue Line + Pace 600)</div>
-
-  <div class="module-row">
-    <span class="module-label">Home → Belmont Blue Line (min)</span>
-    <input type="number" class="num-input" id="bikeToBlue" min="1" max="60" value="10" />
-  </div>
-
-  <div class="module-row">
-    <span class="module-label">NW Trans Center → Office (min)</span>
-    <input type="number" class="num-input" id="bikeFromPace" min="1" max="60" value="10" />
-  </div>
-
-  <div class="module-row">
-    <span class="module-label">Ticket Mode</span>
-    <div class="seg" id="ctaTicketSeg">
-      <button class="seg-btn" data-val="roundtrip">2× One-way</button>
-      <button class="seg-btn" data-val="daypass">Day Pass</button>
-    </div>
-  </div>
-
-  <div class="module-row">
-    <span class="module-label">One-way Fare ($)</span>
-    <input type="number" class="num-input" id="ctaFare" min="0.01" max="50" step="0.25" value="2.50" />
-  </div>
-
-  <div class="module-row">
-    <span class="module-label">Day Pass ($)</span>
-    <input type="number" class="num-input" id="ctaDayPass" min="0.01" max="50" step="0.25" value="5.00" />
-  </div>
-</div>
-
-<div class="card">
   <div class="card-title">Commute — Metra (UP-NW)</div>
 
   <div class="module-row">
@@ -461,16 +429,12 @@ function applyToUI(cfg) {
     if (el) el.checked = cfg[key] !== false;
   });
   ['bikeToMetra', 'bikeFromMetra', 'mpg', 'gasPrice', 'tollCost',
-   'bikeToBlue', 'bikeFromPace', 'ctaFare', 'ctaDayPass',
    'metraFare', 'metraDayPass', 'workWindow', 'latestArrival', 'officeClose'].forEach(key => {
     const el = document.getElementById(key);
     if (el && cfg[key] != null) el.value = cfg[key];
   });
   document.querySelectorAll('#metraTicketSeg .seg-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.val === (cfg.metraTicketMode || 'roundtrip'));
-  });
-  document.querySelectorAll('#ctaTicketSeg .seg-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.val === (cfg.ctaTicketMode || 'roundtrip'));
   });
   document.querySelectorAll('#themeSeg .seg-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.val === (cfg.theme || 'auto'));
@@ -538,7 +502,6 @@ document.querySelectorAll('#themeSeg .seg-btn').forEach(btn => {
 });
 
 ['bikeToMetra', 'bikeFromMetra', 'mpg', 'gasPrice', 'tollCost',
- 'bikeToBlue', 'bikeFromPace', 'ctaFare', 'ctaDayPass',
  'metraFare', 'metraDayPass', 'workWindow'].forEach(key => {
   const el = document.getElementById(key);
   if (!el) return;
@@ -549,14 +512,6 @@ document.querySelectorAll('#themeSeg .seg-btn').forEach(btn => {
   const el = document.getElementById(key);
   if (!el) return;
   el.addEventListener('change', () => onChange(key, el.value));
-});
-
-document.querySelectorAll('#ctaTicketSeg .seg-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#ctaTicketSeg .seg-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    onChange('ctaTicketMode', btn.dataset.val);
-  });
 });
 
 document.querySelectorAll('#metraTicketSeg .seg-btn').forEach(btn => {

@@ -59,16 +59,6 @@
   </div>
   <div class="commute-divider"></div>
   <div class="commute-mode">
-    <div class="commute-label">CTA</div>
-    <div class="commute-time" id="commuteCtaTime">--</div>
-    <div class="commute-sub" id="commuteCtaSub">Pace 600 departs</div>
-    <div class="commute-extra" id="commuteCtaBikeEta"></div>
-    <div class="commute-extra" id="commuteCtaBlueDep"></div>
-    <div class="commute-leave" id="commuteCtaLeave"></div>
-    <div class="commute-cost" id="commuteCtaCost"></div>
-  </div>
-  <div class="commute-divider"></div>
-  <div class="commute-mode">
     <div class="commute-label">Metra</div>
     <div class="commute-time" id="commuteTrainTime">--</div>
     <div class="commute-sub" id="commuteTrainSub">min ride</div>
@@ -284,8 +274,6 @@ const LAYOUT_DEFAULTS = {
   busEast: true, busWest: true,
   nowPlaying: true, weather: true, sports: true, latestActivity: true, commute: true, autoCommute: true,
   bikeToMetra: 10, bikeFromMetra: 16, mpg: 28, gasPrice: 3.50, tollCost: 0,
-  ctaTicketMode: 'roundtrip', ctaFare: 2.50, ctaDayPass: 5.00,
-  bikeToBlue: 10, blueLineMins: 30, bikeFromPace: 10,
   metraFare: 5.50, metraDayPass: 10.00, metraTicketMode: 'roundtrip',
   pullups: true, pushups: true,
 };
@@ -924,11 +912,9 @@ async function loadNowPlaying(){
 /* ===== Commute ===== */
 async function loadCommute() {
   try {
-    const [cd, md, pd, bd] = await Promise.all([
+    const [cd, md] = await Promise.all([
       fetch('./data/commute.json', { cache: 'no-store' }).then(r => r.json()),
       fetch('./data/metra_clybourn.json', { cache: 'no-store' }).then(r => r.json()),
-      fetch('./data/pace_600.json', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ rows: [] })),
-      fetch('./data/blue_line.json', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ rows: [] })),
     ]);
 
     const fmt = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -937,12 +923,6 @@ async function loadCommute() {
     const bikeFromMetra = layoutState.bikeFromMetra ?? 16;
     const mpg              = layoutState.mpg              ?? 28;
     const gasPrice         = layoutState.gasPrice         ?? 3.50;
-    const ctaTicketMode    = layoutState.ctaTicketMode    ?? 'roundtrip';
-    const ctaFare          = layoutState.ctaFare          ?? 2.50;
-    const ctaDayPass       = layoutState.ctaDayPass       ?? 5.00;
-    const bikeToBlue       = layoutState.bikeToBlue       ?? 10;
-    const blueLineMins     = layoutState.blueLineMins     ?? 30;
-    const bikeFromPace     = layoutState.bikeFromPace     ?? 10;
     const metraFare        = layoutState.metraFare        ?? 5.50;
     const metraDayPass     = layoutState.metraDayPass     ?? 10.00;
     const metraTicketMode  = layoutState.metraTicketMode  ?? 'roundtrip';
@@ -963,89 +943,6 @@ async function loadCommute() {
         if (tollCost > 0) costParts.push(`$${tollCost.toFixed(2)} tolls`);
         driveCostEl.textContent = `$${totalDriveCost.toFixed(2)} r/t (${costParts.join(' + ')})`;
       }
-    }
-
-    const ctaEl        = document.getElementById('commuteCtaTime');
-    const ctaSubEl     = document.getElementById('commuteCtaSub');
-    const ctaCostEl    = document.getElementById('commuteCtaCost');
-    const ctaBikeEtaEl = document.getElementById('commuteCtaBikeEta');
-    const ctaLeaveEl   = document.getElementById('commuteCtaLeave');
-
-    if (ctaCostEl) {
-      if (ctaTicketMode === 'daypass') {
-        ctaCostEl.textContent = `$${Number(ctaDayPass).toFixed(2)} day pass`;
-      } else {
-        ctaCostEl.textContent = `$${(Number(ctaFare) * 2).toFixed(2)} r/t (2× ticket)`;
-      }
-    }
-
-    if (ctaEl && pd && pd.rows && pd.rows.length > 0) {
-      // Find best Pace + Blue Line combination:
-      // For each Pace bus (earliest first), find all Blue Line trains where:
-      //   1. Train arrives Rosemont >= 5 min before Pace departs
-      //   2. Train arrives Belmont with enough time to bike there (belmontArr >= now + bikeToBlue)
-      // Among valid trains, pick the LATEST one (maximizes time at home).
-      const nowTs = now.getTime() / 1000;
-      let paceRide = null, blueTrain = null;
-      for (const pace of pd.rows) {
-        const needRosemontBy = pace.depTime - 5 * 60;
-        const candidates = (bd?.rows || []).filter(b =>
-          b.rosemontArr <= needRosemontBy &&
-          b.belmontArr >= nowTs + bikeToBlue * 60
-        );
-        if (candidates.length > 0) {
-          // Pick the latest Blue Line train that still connects
-          paceRide = pace;
-          blueTrain = candidates[candidates.length - 1];
-          break;
-        }
-        // No valid Blue Line — is this Pace bus still catchable via fallback timing?
-        const fallbackLeave = pace.depTime - (blueLineMins + bikeToBlue + 5) * 60;
-        if (fallbackLeave >= nowTs - 120) {
-          paceRide = pace;
-          break;
-        }
-        // This bus is fully missed — skip to the next one
-      }
-      // Last resort: show the final upcoming Pace bus
-      if (!paceRide && pd.rows.length) paceRide = pd.rows[pd.rows.length - 1];
-
-      if (paceRide.rideMins != null) {
-        const officeEta = new Date(paceRide.arrTime * 1000 + bikeFromPace * 60000);
-        ctaEl.textContent = fmt(officeEta);
-        ctaSubEl.textContent = `Pace departs ${fmt(new Date(paceRide.depTime * 1000))} · ${paceRide.rideMins} min ride`;
-        if (ctaBikeEtaEl) ctaBikeEtaEl.textContent = '';
-      } else {
-        ctaEl.textContent = fmt(new Date(paceRide.depTime * 1000));
-        ctaSubEl.textContent = `departs Rosemont`;
-        if (ctaBikeEtaEl) ctaBikeEtaEl.textContent = '';
-      }
-
-      // Blue Line info line
-      if (blueTrain) {
-        const blueDepEl = document.getElementById('commuteCtaBlueDep');
-        if (blueDepEl) blueDepEl.textContent = `Blue Line ${fmt(new Date(blueTrain.belmontArr * 1000))} from Belmont · ${blueTrain.rideMins} min to Rosemont`;
-      }
-
-      // Leave-by countdown
-      const leaveByTs = blueTrain
-        ? blueTrain.belmontArr - bikeToBlue * 60
-        : paceRide.depTime - (blueLineMins + bikeToBlue + 5) * 60;
-      const leaveInMins = Math.round((leaveByTs - now.getTime() / 1000) / 60);
-      if (ctaLeaveEl) {
-        if (leaveInMins <= 0) {
-          ctaLeaveEl.textContent = leaveInMins < -2 ? 'Train missed' : 'Leave now!';
-          ctaLeaveEl.className = 'commute-leave urgent';
-        } else {
-          ctaLeaveEl.textContent = `Leave in ${leaveInMins} min`;
-          ctaLeaveEl.className = leaveInMins <= 5 ? 'commute-leave urgent' : 'commute-leave';
-        }
-      }
-    } else if (ctaEl) {
-      ctaEl.textContent = '--';
-      ctaSubEl.textContent = 'no buses';
-      if (ctaBikeEtaEl) ctaBikeEtaEl.textContent = '';
-      if (ctaLeaveEl) ctaLeaveEl.textContent = '';
     }
 
     const trainEl      = document.getElementById('commuteTrainTime');
