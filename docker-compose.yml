@@ -1,0 +1,18 @@
+# Home-server side of ctatracker: just the poller. The wall Pi runs server.js
+# via systemd and receives every poller output through its /api/ingest
+# endpoint (see PI_BASE_URL / INGEST_TOKEN in .env). data/ holds the poller's
+# local mirror: the metra schedule cache and commute jsonl logs.
+services:
+  poller:
+    build:
+      context: .
+      dockerfile: Dockerfile.poller
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

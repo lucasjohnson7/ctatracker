@@ -1,0 +1,7 @@
+FROM python:3.12-alpine
+# Commute windows and updatedAt timestamps are computed in local time.
+RUN apk add --no-cache tzdata
+ENV TZ=America/Chicago
+WORKDIR /app
+COPY poller.py .
+CMD ["python", "-u", "poller.py"]

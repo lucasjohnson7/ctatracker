@@ -1,6 +1,7 @@
 // server.js (ESM, Vercel Edge–compatible)
 import "dotenv/config";
 import express from "express";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { handleGet as pullupGet, handleInc as pullupInc, handleDec as pullupDec, handleStats as pullupStats } from "./api/pullups.js";
@@ -142,6 +143,39 @@ app.get("/api/pushups", pushupGet);
 app.get("/api/pushups/stats", pushupStats);
 app.post("/api/pushups/:person/inc", pushupInc);
 app.post("/api/pushups/:person/dec", pushupDec);
+
+// Poller ingest — the poller runs on the home server (better connection,
+// less load on the Pi) and mirrors each output here, so the frontend keeps
+// reading static files under ./data. .json bodies replace the file
+// atomically; .jsonl bodies append one line (the commute logs).
+const DATA_DIR = path.join(__dirname, "data");
+const INGEST_NAME_RE = /^[a-zA-Z0-9_-]+\.(json|jsonl)$/;
+app.post("/api/ingest/:name", (req, res) => {
+  const expected = process.env.INGEST_TOKEN;
+  const provided = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  if (!expected || provided !== expected) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const { name } = req.params;
+  if (!INGEST_NAME_RE.test(name)) {
+    return res.status(400).json({ error: "bad filename" });
+  }
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const filePath = path.join(DATA_DIR, name);
+    if (name.endsWith(".jsonl")) {
+      fs.appendFileSync(filePath, JSON.stringify(req.body) + "\n");
+    } else {
+      const tmp = `${filePath}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(req.body));
+      fs.renameSync(tmp, filePath);
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("ingest error:", name, err);
+    res.status(500).json({ error: "write failed" });
+  }
+});
 
 // ----------------------------------------
 

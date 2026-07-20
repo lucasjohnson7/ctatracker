@@ -1,11 +1,16 @@
 #!/bin/sh
-# Deploy ctatracker to the wall Pi: push main, fast-forward the Pi's checkout,
-# and restart both services. Runtime state (data/, .env, node_modules/) is
-# gitignored, so a pull never touches it.
+# Deploy ctatracker to both machines:
+#  - wall Pi (server.js under systemd): git pull + restart. Only the node
+#    service — the poller no longer runs on the Pi.
+#  - home server (poller in Docker): pushing to the bare repo triggers its
+#    post-receive hook (checkout + docker compose up -d --build).
+# Runtime state (data/, .env, node_modules/) is gitignored, so deploys never
+# touch it.
 set -e
 
 PI=colinrecker@192.168.12.191
 
 git push origin main
-ssh "$PI" 'cd ~/Projects/ctatracker && git pull --ff-only && sudo systemctl restart ctatracker ctatracker-poller && sleep 2 && systemctl is-active ctatracker ctatracker-poller'
+git push homeserver main
+ssh "$PI" 'cd ~/Projects/ctatracker && git pull --ff-only && sudo systemctl restart ctatracker && sleep 2 && systemctl is-active ctatracker'
 echo "Deployed."

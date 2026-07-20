@@ -34,6 +34,13 @@ GOOGLE_API_KEY  = os.environ.get("GOOGLE_API_KEY", "")
 FITNESS_URL   = os.environ.get("FITNESS_URL", "http://100.98.221.29:3002")
 FITNESS_TOKEN = os.environ.get("FITNESS_TOKEN", "")
 
+# The poller runs on the home server; the wall Pi's express serves data/ as
+# static files, reads layout.json, and proxies Sonos. PI_BASE_URL points at it.
+# With INGEST_TOKEN unset the poller is standalone (writes local files only),
+# which is exactly the old behavior when running on the Pi itself.
+PI_BASE_URL  = os.environ.get("PI_BASE_URL", "http://localhost:3000")
+INGEST_TOKEN = os.environ.get("INGEST_TOKEN", "")
+
 COMMUTE_ORIGIN      = "1454 W School St, Chicago IL 60657"
 COMMUTE_DESTINATION = "2000 Progress Pkwy, Schaumburg IL"
 COMMUTE_RETURN_ORIGIN      = "2000 Progress Pkwy, Schaumburg IL"
@@ -78,11 +85,38 @@ def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
 
 
+def push_to_pi(name, obj):
+    """Mirror a data file (or one .jsonl line) to the Pi's ingest endpoint.
+
+    No-op unless INGEST_TOKEN is set. Failures just log — every output is
+    re-pushed on its next poll cycle, and jsonl lines also persist locally."""
+    if not INGEST_TOKEN:
+        return
+    try:
+        http_post_json(
+            f"{PI_BASE_URL}/api/ingest/{name}",
+            obj,
+            headers={
+                "Authorization": f"Bearer {INGEST_TOKEN}",
+                "Content-Type": "application/json",
+            },
+        )
+    except Exception as e:
+        print(f"Ingest push error ({name}): {e}")
+
+
 def write_json_atomic(filepath, obj):
     tmp = filepath + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(obj, f)
     os.replace(tmp, filepath)
+    push_to_pi(os.path.basename(filepath), obj)
+
+
+def append_jsonl(filepath, entry):
+    with open(filepath, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
+    push_to_pi(os.path.basename(filepath), entry)
 
 
 def http_post_json(url, body, headers=None, timeout=12):
@@ -773,9 +807,7 @@ def log_commute_return_datapoint(commute):
             "metra_ride_mins": next_train["ride_mins"] if next_train else None,
             "metra_total_mins": metra_total,
         }
-        log_file = os.path.join(DATA_DIR, "commute_return_log.jsonl")
-        with open(log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(point) + "\n")
+        append_jsonl(os.path.join(DATA_DIR, "commute_return_log.jsonl"), point)
     except Exception as e:
         print(f"Return commute log error: {e}")
 
@@ -821,9 +853,7 @@ def log_commute_datapoint(commute):
             ) if next_train else None,
         }
 
-        log_file = os.path.join(DATA_DIR, "commute_log.jsonl")
-        with open(log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(point) + "\n")
+        append_jsonl(os.path.join(DATA_DIR, "commute_log.jsonl"), point)
     except Exception as e:
         print(f"Commute log error: {e}")
 
@@ -1130,6 +1160,12 @@ def fetch_latest_activity():
 # ===== Poll loops =====
 
 def read_layout():
+    # Layout lives on the Pi (the phone control panel writes it there); fall
+    # back to the local copy if the Pi is unreachable.
+    try:
+        return http_get_json(f"{PI_BASE_URL}/api/layout", timeout=6)
+    except Exception:
+        pass
     try:
         with open(os.path.join(DATA_DIR, "layout.json")) as f:
             return json.load(f)
@@ -1179,7 +1215,7 @@ def poll_transit():
 
     if layout.get("nowPlaying", True):
         try:
-            now_playing = http_get_json("http://localhost:3000/api/sonos/now-playing")
+            now_playing = http_get_json(f"{PI_BASE_URL}/api/sonos/now-playing")
             now_playing["updatedAt"] = now_iso()
         except Exception as e:
             now_playing = {"playing": False, "error": str(e), "updatedAt": now_iso()}
