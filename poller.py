@@ -73,7 +73,10 @@ PACE_NW_TRANS_TP      = 392
 # Polling cadences
 TRANSIT_INTERVAL  = 20   # seconds
 SPORTS_INTERVAL   = 120  # seconds
-COMMUTE_INTERVAL  = 60   # seconds (1 min — ~5,280 Routes API calls/month at 5–9 AM weekdays)
+COMMUTE_INTERVAL  = 300  # seconds (5 min — ~1,050 Routes API calls/month at 5-9 AM weekdays.
+                          # TRAFFIC_AWARE routingPreference puts these in Google's Pro SKU
+                          # tier, whose free monthly allowance is ~5,000 calls, not the
+                          # Essentials tier's ~10,000 — keep well under that with margin.)
 ACTIVITY_INTERVAL = 300  # seconds (5 min — Supabase latest activity)
 
 
