@@ -177,6 +177,20 @@ app.post("/api/ingest/:name", (req, res) => {
   }
 });
 
+// Health for the status dashboard: 200 only while poller data is fresh, so a
+// dead poller container, broken Tailscale path, or expired API key shows as
+// DOWN rather than the wall silently serving stale arrivals.
+app.get("/api/health", (req, res) => {
+  try {
+    const train = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "train.json"), "utf8"));
+    const ageSec = Math.round((Date.now() - new Date(train.updatedAt).getTime()) / 1000);
+    const ok = Number.isFinite(ageSec) && ageSec >= 0 && ageSec < 300;
+    res.status(ok ? 200 : 503).json({ ok, dataAgeSec: ageSec });
+  } catch (err) {
+    res.status(503).json({ ok: false, error: String(err) });
+  }
+});
+
 // ----------------------------------------
 
 app.listen(PORT, "0.0.0.0", () => {
