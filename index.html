@@ -1244,7 +1244,20 @@ async function loadLatestActivity() {
       notes = data.notes || '';
       if (loc?.lat && loc?.lon) pinLatLon = [loc.lat, loc.lon];
     } else {
-      title = '🏅 Latest Activity';
+      // Fallback for any activity kind not specifically handled above (e.g. a
+      // new one added on fitness-logger) — generically list its data fields
+      // instead of showing a bare "Latest Activity" with no details.
+      title = `🏅 ${loc?.name || log.display_name || 'Latest Activity'}`;
+      for (const [key, val] of Object.entries(data)) {
+        if (key === 'notes' || val == null || val === '') continue;
+        const isMinutes = /_min$/.test(key);
+        const label = (isMinutes ? key.replace(/_min$/, '') : key)
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, c => c.toUpperCase());
+        stats.push([label, isMinutes ? `${val} min` : val]);
+      }
+      notes = data.notes || '';
+      if (loc?.lat && loc?.lon) pinLatLon = [loc.lat, loc.lon];
     }
 
     const showMap = !!(polylineStr || pinLatLon);
