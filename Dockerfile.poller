@@ -3,5 +3,7 @@ FROM python:3.12-alpine
 RUN apk add --no-cache tzdata
 ENV TZ=America/Chicago
 WORKDIR /app
+# Metra's GTFS-realtime feed needs protobuf bindings — everything else is stdlib.
+RUN pip install --no-cache-dir gtfs-realtime-bindings==2.0.0
 COPY poller.py .
 CMD ["python", "-u", "poller.py"]
