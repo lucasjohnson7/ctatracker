@@ -19,4 +19,13 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS pushup_counts (
+    date    TEXT NOT NULL,
+    person  TEXT NOT NULL,
+    count   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (date, person)
+  )
+`);
+
 export default db;

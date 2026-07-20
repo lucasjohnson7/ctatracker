@@ -31,11 +31,12 @@
   --pill-border:#ffffff33;
 }
 
-/* smooth theme fade + hidden scrollbar */
+/* smooth theme fade + hidden scrollbar + hide cursor on kiosk */
 html, body {
-  transition: background-color .35s ease, color .35s ease; 
+  transition: background-color .35s ease, color .35s ease;
   overflow-y: scroll;
   scrollbar-width: none;
+  cursor: none;
 }
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
@@ -66,6 +67,17 @@ header{
 }
 
 .timestamp{ opacity:.7; font-size:14px; }
+
+.presence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d84242;
+  margin-left: 8px;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.presence-dot.home { background: #3cb96a; }
 
 /* Lists */
 .list{
@@ -143,6 +155,27 @@ header{
   background:var(--bus-bg);
   color:var(--bus-text);
 }
+#metraClybournBody .row{
+  background:#b89200;
+  color:#fff;
+}
+#metraClybournBody .dest{
+  font-size:36px;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:.5px;
+}
+.rt-dot{
+  display:inline-block;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#1a7a1a;
+  margin-left:7px;
+  vertical-align:middle;
+  position:relative;
+  top:-2px;
+}
 
 /* Bigger destination text inside rows */
 #trainLoopBody .dest,
@@ -169,38 +202,40 @@ header{
   align-items:stretch;
 }
 
-/* Lock-screen style Now Playing – album art on top, centered */
+/* Lock-screen style Now Playing */
 .nowplaying {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  gap:12px;
-  padding:16px 18px;
-  border-radius:16px;
-  background:var(--pill-bg);
-  border:1px solid var(--pill-border);
-  box-shadow:0 8px 24px rgba(0,0,0,.08);
-  flex:1 1 0;
-  min-width:0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .np-art{
-  width:320px;
-  height:320px;
-  border-radius:18px;
-  object-fit:cover;
-  image-rendering:pixelated;
-  background:#00000014;
-  flex:0 0 auto;
-  display:none;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  border-radius: 10px;
+  object-fit: cover;
+  image-rendering: pixelated;
+  background: var(--pill-bg);
+  display: none;
 }
 
 .np-meta{
-  flex:0 0 auto;
-  min-width:0;
-  width:100%;
+  flex: 0 0 auto;
+  min-width: 0;
+  width: 100%;
+  text-align: center;
 }
 
 .np-title,
@@ -248,14 +283,8 @@ header{
 }
 
 .np-bar{
-  margin-top:10px;
-  height:8px;
-  border-radius:999px;
-  background:rgba(0,0,0,.12);
-  overflow:hidden;
-  width:100%;
+  display: none;
 }
-:root.night .np-bar{ background:rgba(255,255,255,.18); }
 
 .np-bar-fill{
   height:100%;
@@ -285,7 +314,7 @@ header{
 .weather,
 .datetime-card,
 .sports-card{
-  padding:16px 18px;
+  padding:10px 14px;
   border-radius:16px;
   background:var(--pill-bg);
   border:1px solid var(--pill-border);
@@ -300,16 +329,16 @@ header{
   align-items:center;
   justify-content:center;
   text-align:center;
-  gap:10px;
+  gap:6px;
   flex:1 1 0;
   width:auto;
-  height:150px;
+  height:110px;
 }
 
 /* Weather icon */
 .wx-icon{
-  width:72px;
-  height:72px;
+  width:52px;
+  height:52px;
   image-rendering:pixelated;
 }
 
@@ -324,21 +353,21 @@ header{
 
 .wx-temp{
   font-weight:800;
-  font-size:26px;
+  font-size:20px;
 }
 .wx-desc{
   opacity:.9;
-  font-size:18px;
+  font-size:15px;
 }
 
 /* Date/Time */
 .dt-date{
-  font-size:22px;
+  font-size:17px;
   font-weight:700;
   opacity:.9;
 }
 .dt-time{
-  font-size:32px;
+  font-size:26px;
   font-weight:900;
 }
 
@@ -350,7 +379,7 @@ header{
   display:flex;
   flex-direction:column;
   align-items:stretch;
-  gap:12px;
+  gap:4px;
   width:100%;
 }
 
@@ -358,8 +387,8 @@ header{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:20px;
-  padding:12px 0;
+  gap:12px;
+  padding:6px 0;
   border-top:1px solid rgba(0,0,0,.08);
 }
 :root.night .sports-team.scorebug{
@@ -385,8 +414,8 @@ header{
 }
 
 .team-logo{
-  width:48px;
-  height:48px;
+  width:36px;
+  height:36px;
   object-fit:contain;
   image-rendering:pixelated;
 }
@@ -405,9 +434,9 @@ header{
 }
 
 .team-score{
-  font-size:28px;
+  font-size:22px;
   font-weight:900;
-  min-width:32px;
+  min-width:28px;
   text-align:center;
 }
 
@@ -417,8 +446,8 @@ header{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  padding:0 10px;
-  min-width:80px;
+  padding:0 6px;
+  min-width:60px;
 }
 
 .scorebug-center-top{
@@ -477,26 +506,237 @@ header{
     align-items:flex-start;
   }
   .nowplaying{
-    gap:10px;
-    padding:12px 14px;
-  }
-  .np-art{
-    width:140px;
-    height:140px;
-    border-radius:12px;
+    padding:10px;
   }
   .info-right{
     margin-top:8px;
   }
 }
 
-/* === SLIDESHOW MODE — make images bigger === */
+/* === SLIDESHOW MODE === */
+.nowplaying.slideshow-mode {
+  padding: 0;
+  border-radius: 16px;
+}
 .nowplaying.slideshow-mode .np-art {
+  border-radius: 16px;
+  object-fit: cover;
+}
+.nowplaying.slideshow-mode .np-meta {
+  display: none;
+}
+
+/* ===========================
+   COMMUTE TRACKER
+   =========================== */
+
+.commute-card {
+  display: flex;
+  align-items: center;
+  padding: 14px 24px;
+  border-radius: 16px;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+}
+
+.commute-mode {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.commute-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
+.commute-time {
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.commute-sub {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.commute-cost {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.commute-extra {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-top: 5px;
+}
+
+.commute-leave {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 3px;
+  opacity: 0.85;
+}
+
+.commute-leave.urgent {
+  color: #e05a2b;
+  opacity: 1;
+}
+
+.commute-divider {
+  width: 1px;
+  height: 60px;
+  background: var(--pill-border);
+  margin: 0 20px;
+  flex-shrink: 0;
+}
+
+/* ===========================
+   BIKE WEATHER CARD
+   =========================== */
+
+.bike-card {
+  display: flex;
+  align-items: center;
+  padding: 10px 24px;
+  border-radius: 16px;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  gap: 0;
+}
+
+.bike-header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.bike-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.bike-location {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  margin-bottom: 4px;
+}
+
+.bike-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.bike-leg {
+  font-size: 12px;
+  opacity: 0.5;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 64px;
+}
+
+.bike-pct {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.bike-pct.rain { color: #4a90d9; }
+.bike-pct.iffy { color: #d29f00; }
+
+.bike-divider {
+  width: 1px;
+  height: 50px;
+  background: var(--pill-border);
+  margin: 0 20px;
+  flex-shrink: 0;
+}
+
+/* ===========================
+   LATEST ACTIVITY CARD
+   =========================== */
+
+.activity-card {
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
   width: 100%;
-  height: auto;
-  max-width: 450px;   /* choose your max size */
-  max-height: 450px;  /* choose your max size */
-  border-radius: 20px;
+  box-sizing: border-box;
+}
+
+.activity-header {
+  margin-bottom: 8px;
+}
+
+.activity-title {
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.activity-date {
+  font-size: 12px;
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+.activity-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 6px 10px;
+}
+
+.activity-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+}
+
+.activity-stat-value {
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.activity-notes {
+  font-size: 12px;
+  opacity: 0.5;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.activity-map {
+  margin-top: 10px;
+  height: 160px;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 /* ===========================
@@ -505,14 +745,37 @@ header{
 
 .pullup-card{
   display:flex;
-  align-items:center;
-  justify-content:center;
+  align-items:stretch;
   gap:0;
-  padding:8px 24px;
+  padding:10px 24px;
   border-radius:16px;
   background:var(--pill-bg);
   border:1px solid var(--pill-border);
   box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+
+/* Left half — today's counts */
+.pullup-today{
+  flex:1 1 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+}
+
+.pullup-today-label{
+  font-size:14px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  opacity:.5;
+}
+
+.pullup-today-counts{
+  display:flex;
+  align-items:baseline;
+  justify-content:center;
 }
 
 .pullup-person{
@@ -544,6 +807,48 @@ header{
   margin:0 24px;
 }
 
+/* Vertical divider between today + stats */
+.pullup-stats-divider{
+  width:1px;
+  background:var(--pill-border);
+  margin:4px 20px;
+}
+
+/* Right half — cycling stats */
+.pullup-stats{
+  flex:1 1 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  transition:opacity .3s ease;
+}
+
+.pullup-stat-label{
+  font-size:16px;
+  font-weight:800;
+  opacity:.6;
+  letter-spacing:.5px;
+}
+
+.pullup-stat-values{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  font-size:22px;
+}
+
+.stat-person strong{
+  font-weight:900;
+  font-size:26px;
+}
+
+.stat-dot{
+  opacity:.4;
+  font-size:20px;
+}
+
 @keyframes pullup-bump{
   0%  { transform:scale(1); }
   30% { transform:scale(1.25); }
@@ -556,7 +861,14 @@ header{
 
 @media (max-width: 680px){
   .pullup-card{
+    flex-direction:column;
     padding:12px 16px;
+    gap:8px;
+  }
+  .pullup-stats-divider{
+    width:80%;
+    height:1px;
+    margin:4px auto;
   }
   .pullup-count{
     font-size:48px;

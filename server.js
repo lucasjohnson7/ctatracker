@@ -3,7 +3,11 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import { handleGet as pullupGet, handleInc as pullupInc, handleDec as pullupDec } from "./api/pullups.js";
+import { handleGet as pullupGet, handleInc as pullupInc, handleDec as pullupDec, handleStats as pullupStats } from "./api/pullups.js";
+import { handleGet as pushupGet, handleInc as pushupInc, handleDec as pushupDec, handleStats as pushupStats } from "./api/pushups.js";
+import { handleGet as layoutGet, handlePost as layoutPost } from "./api/layout.js";
+import { handleGet as presenceGet, handlePost as presencePost } from "./api/presence.js";
+import { handleGet as analyticsGet } from "./api/analytics.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +15,8 @@ const PORT = process.env.PORT || 3000;
 // __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+app.use(express.json());
 
 // Serve static files (index.html, css, images, slideshow)
 app.use(express.static(__dirname, { extensions: ["html"] }));
@@ -116,8 +122,26 @@ app.get("/api/sonos/now-playing", (req, res) =>
 
 // Pull-ups
 app.get("/api/pullups", pullupGet);
+app.get("/api/pullups/stats", pullupStats);
 app.post("/api/pullups/:person/inc", pullupInc);
 app.post("/api/pullups/:person/dec", pullupDec);
+
+// Analytics
+app.get("/api/analytics", analyticsGet);
+
+// Layout
+app.get("/api/layout", layoutGet);
+app.post("/api/layout", layoutPost);
+
+// Presence
+app.get("/api/presence", presenceGet);
+app.post("/api/presence", presencePost);
+
+// Push-ups
+app.get("/api/pushups", pushupGet);
+app.get("/api/pushups/stats", pushupStats);
+app.post("/api/pushups/:person/inc", pushupInc);
+app.post("/api/pushups/:person/dec", pushupDec);
 
 // ----------------------------------------
 

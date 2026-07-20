@@ -2,6 +2,9 @@
 
 import os
 import json
+import csv
+import io
+import zipfile
 import datetime
 import ssl
 import time
@@ -24,8 +27,17 @@ def load_dotenv(path=".env"):
 
 load_dotenv(os.path.join(ROOT, ".env"))
 
-CTA_TRAIN_KEY = os.environ.get("CTA_TRAIN_KEY", "")
-CTA_BUS_KEY   = os.environ.get("CTA_BUS_KEY", "")
+CTA_TRAIN_KEY   = os.environ.get("CTA_TRAIN_KEY", "")
+CTA_BUS_KEY     = os.environ.get("CTA_BUS_KEY", "")
+METRA_KEY       = os.environ.get("METRA_KEY", "")
+GOOGLE_API_KEY  = os.environ.get("GOOGLE_API_KEY", "")
+FITNESS_URL   = os.environ.get("FITNESS_URL", "http://100.98.221.29:3002")
+FITNESS_TOKEN = os.environ.get("FITNESS_TOKEN", "")
+
+COMMUTE_ORIGIN      = "1454 W School St, Chicago IL 60657"
+COMMUTE_DESTINATION = "2000 Progress Pkwy, Schaumburg IL"
+COMMUTE_RETURN_ORIGIN      = "2000 Progress Pkwy, Schaumburg IL"
+COMMUTE_RETURN_DESTINATION = "1454 W School St, Chicago IL 60657"
 
 # Set VERIFY_SSL=0 in env if certs ever break
 VERIFY_SSL = os.environ.get("VERIFY_SSL", "1") != "0"
@@ -39,9 +51,23 @@ ESPN_BULLS_TEAM = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/
 ESPN_BEARS_TEAM = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/chi"
 ESPN_CREIGHTON_TEAM = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/156"
 
+# Blue Line: Belmont (Kimball & Belmont) → Rosemont, O'Hare-bound
+BLUE_BELMONT_MAPID  = "40060"
+BLUE_ROSEMONT_MAPID = "40820"
+
+# Pace 600 West: Rosemont CTA → Northwest Transportation Center
+PACE_ROUTE_ID         = 141
+PACE_DIR_ID           = 4      # West
+PACE_ROSEMONT_STOP    = 8944
+PACE_ROSEMONT_TP      = 414
+PACE_NW_TRANS_STOP    = 23427
+PACE_NW_TRANS_TP      = 392
+
 # Polling cadences
-TRANSIT_INTERVAL = 20   # seconds
-SPORTS_INTERVAL  = 120  # seconds
+TRANSIT_INTERVAL  = 20   # seconds
+SPORTS_INTERVAL   = 120  # seconds
+COMMUTE_INTERVAL  = 60   # seconds (1 min — ~5,280 Routes API calls/month at 5–9 AM weekdays)
+ACTIVITY_INTERVAL = 300  # seconds (5 min — Supabase latest activity)
 
 
 def now_iso():
@@ -59,6 +85,14 @@ def write_json_atomic(filepath, obj):
     os.replace(tmp, filepath)
 
 
+def http_post_json(url, body, headers=None, timeout=12):
+    data = json.dumps(body).encode("utf-8")
+    req = Request(url, data=data, headers=headers or {}, method="POST")
+    ctx = ssl.create_default_context() if VERIFY_SSL else ssl._create_unverified_context()
+    with urlopen(req, timeout=timeout, context=ctx) as resp:
+        return json.loads(resp.read().decode("utf-8", "replace"))
+
+
 def http_get_json(url, headers=None, timeout=12):
     req = Request(url, headers=headers or {})
 
@@ -66,6 +100,14 @@ def http_get_json(url, headers=None, timeout=12):
 
     with urlopen(req, timeout=timeout, context=ctx) as resp:
         return json.loads(resp.read().decode("utf-8", "replace"))
+
+
+# ===== Helpers =====
+
+def is_weekday_morning():
+    """True if it's currently Monday–Friday, 5:00–9:59 AM local time."""
+    now = datetime.datetime.now()
+    return now.weekday() < 5 and 5 <= now.hour < 9
 
 
 # ===== CTA Transit =====
@@ -121,6 +163,669 @@ def fetch_cta_bus_predictions(stpid, rt="77", top="6"):
 
     except Exception as e:
         return {"rows": [], "error": str(e), "updatedAt": now_iso()}
+
+
+# ===== Blue Line timing =====
+
+def _parse_cta_arr_time(arr_t):
+    """Parse CTA arrT string '2026-04-14T23:29:06' to unix timestamp."""
+    try:
+        return datetime.datetime.strptime(arr_t, "%Y-%m-%dT%H:%M:%S").timestamp()
+    except Exception:
+        return None
+
+
+def _blue_ohare_arrivals(mapid):
+    """Return {rn: unix_timestamp} for next O'Hare-bound Blue Line trains at mapid."""
+    url = (
+        "https://lapi.transitchicago.com/api/1.0/ttarrivals.aspx"
+        f"?key={CTA_TRAIN_KEY}&mapid={mapid}&rt=Blue&outputType=JSON&max=12"
+    )
+    j = http_get_json(url)
+    rows = (j.get("ctatt") or {}).get("eta") or []
+    result = {}
+    for x in rows:
+        dest = x.get("destNm", "")
+        if "O'Hare" not in dest and "OHare" not in dest and "O Hare" not in dest:
+            continue
+        rn = x.get("rn")
+        arr_t = x.get("arrT")
+        if rn and arr_t:
+            ts = _parse_cta_arr_time(arr_t)
+            if ts and rn not in result:
+                result[rn] = ts
+    return result
+
+
+def fetch_blue_line_timing():
+    if not CTA_TRAIN_KEY:
+        return {"rows": [], "error": "Missing CTA_TRAIN_KEY", "updatedAt": now_iso()}
+    try:
+        now_ts = time.time()
+        belmont  = _blue_ohare_arrivals(BLUE_BELMONT_MAPID)
+        rosemont = _blue_ohare_arrivals(BLUE_ROSEMONT_MAPID)
+
+        rows = []
+        for rn, belmont_ts in belmont.items():
+            if belmont_ts < now_ts - 60:
+                continue
+            rosemont_ts = rosemont.get(rn)
+            if rosemont_ts is None or rosemont_ts <= belmont_ts:
+                continue
+            ride_mins = round((rosemont_ts - belmont_ts) / 60)
+            rows.append({
+                "rn":          rn,
+                "belmontArr":  belmont_ts,
+                "rosemontArr": rosemont_ts,
+                "rideMins":    ride_mins,
+                "belmontMins": max(0, round((belmont_ts - now_ts) / 60)),
+            })
+
+        rows.sort(key=lambda x: x["belmontArr"])
+        return {"rows": rows[:6], "error": None, "updatedAt": now_iso()}
+    except Exception as e:
+        return {"rows": [], "error": str(e), "updatedAt": now_iso()}
+
+
+# ===== Metra =====
+
+METRA_STOP_NAMES = {
+    "OTC":        "Ogilvie",
+    "CLYBOURN":   "Clybourn",
+    "IRVINGPK":   "Irving Park",
+    "JEFFERSONP":  "Jefferson Park",
+    "GLADSTNE":   "Gladstone Park",
+    "NORWOODP":   "Norwood Park",
+    "EDISONPK":   "Edison Park",
+    "PARKRIDGE":  "Park Ridge",
+    "DEEROAD":    "Dee Road",
+    "DESPLAINES": "Des Plaines",
+    "CUMBERLAND": "Cumberland",
+    "GOLF":       "Golf",
+    "MTPROSPECT": "Mt Prospect",
+    "ARLINGTNHT": "Arlington Heights",
+    "ARLINGTNPK": "Arlington Park",
+    "PALATINE":   "Palatine",
+    "BARRINGTON": "Barrington",
+    "FOXRG":      "Fox River Grove",
+    "CARY":       "Cary",
+    "PINGREE":    "Pingree Road",
+    "CRYSTAL":    "Crystal Lake",
+    "WOODSTOCK":  "Woodstock",
+    "HARVARD":    "Harvard",
+    "MCHENRY":    "McHenry",
+}
+
+METRA_SCHEDULE_URL   = "https://schedules.metrarail.com/gtfs/schedule.zip"
+METRA_SCHEDULE_CACHE = os.path.join(DATA_DIR, "metra_schedule_cache.json")
+METRA_SCHEDULE_TTL   = 24 * 3600  # refresh once a day
+
+_metra_schedule = None
+_metra_schedule_loaded_at = 0
+
+
+def _parse_dep_secs(t_str):
+    """Parse HH:MM:SS (possibly > 24h) to seconds since midnight."""
+    parts = t_str.strip().split(":")
+    if len(parts) != 3:
+        return None
+    try:
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+    except ValueError:
+        return None
+
+
+def load_metra_static_schedule(force=False):
+    """Download GTFS zip and cache Clybourn outbound UP-NW departures."""
+    global _metra_schedule, _metra_schedule_loaded_at
+
+    # Use in-memory cache if fresh
+    if not force and _metra_schedule and (time.time() - _metra_schedule_loaded_at < METRA_SCHEDULE_TTL):
+        return _metra_schedule
+
+    # Try disk cache first
+    if not force:
+        try:
+            with open(METRA_SCHEDULE_CACHE) as f:
+                cached = json.load(f)
+            age = time.time() - datetime.datetime.fromisoformat(cached.get("updatedAt","2000-01-01")).timestamp()
+            if age < METRA_SCHEDULE_TTL:
+                _metra_schedule = cached
+                _metra_schedule_loaded_at = time.time()
+                return cached
+        except Exception:
+            pass
+
+    print("Downloading Metra GTFS static schedule...")
+    try:
+        req = Request(METRA_SCHEDULE_URL, headers={"User-Agent": "ctatracker-local/1.0"})
+        ctx = ssl.create_default_context() if VERIFY_SSL else ssl._create_unverified_context()
+        with urlopen(req, timeout=60, context=ctx) as resp:
+            zip_data = resp.read()
+
+        zf = zipfile.ZipFile(io.BytesIO(zip_data))
+
+        def gtfs_reader(zf, filename):
+            """DictReader with space-stripped field names and values."""
+            f = io.TextIOWrapper(zf.open(filename), encoding="utf-8-sig")
+            reader = csv.DictReader(f, skipinitialspace=True)
+            for row in reader:
+                yield {k.strip(): v.strip() for k, v in row.items()}
+
+        # 1. UP-NW trips: trip_id -> service_id
+        upnw_trips = {}
+        for row in gtfs_reader(zf, "trips.txt"):
+            if row.get("route_id") == "UP-NW":
+                upnw_trips[row["trip_id"]] = row["service_id"]
+
+        # 2. Build stop sequences for UP-NW trips
+        trip_stops = {}
+        for row in gtfs_reader(zf, "stop_times.txt"):
+            tid = row["trip_id"]
+            if tid not in upnw_trips:
+                continue
+            t_str = row.get("departure_time") or row.get("arrival_time", "")
+            secs = _parse_dep_secs(t_str)
+            if secs is None:
+                continue
+            if tid not in trip_stops:
+                trip_stops[tid] = []
+            trip_stops[tid].append((int(row.get("stop_sequence", 0)), row["stop_id"], secs))
+
+        # 3. Filter to outbound trips that stop at Clybourn
+        clybourn_deps = {}
+        for tid, stops in trip_stops.items():
+            stops.sort()
+            stop_ids = [s[1] for s in stops]
+            if "CLYBOURN" not in stop_ids:
+                continue
+            idx = stop_ids.index("CLYBOURN")
+            if "OTC" in stop_ids[idx + 1:]:
+                continue  # inbound
+            dep_secs = stops[idx][2]
+            terminal = METRA_STOP_NAMES.get(stop_ids[-1], stop_ids[-1])
+            # Arlington Heights arrival time (if this train stops there)
+            arlington_secs = None
+            if "ARLINGTNHT" in stop_ids:
+                aidx = stop_ids.index("ARLINGTNHT")
+                arlington_secs = stops[aidx][2]
+            clybourn_deps[tid] = {
+                "service_id": upnw_trips[tid],
+                "dep_secs": dep_secs,
+                "terminal": terminal,
+                "arlington_secs": arlington_secs,
+            }
+
+        # 3b. Inbound trips departing Arlington Heights toward OTC
+        arlington_deps = {}
+        for tid, stops in trip_stops.items():
+            stops.sort()
+            stop_ids = [s[1] for s in stops]
+            if "ARLINGTNHT" not in stop_ids:
+                continue
+            aidx = stop_ids.index("ARLINGTNHT")
+            if "OTC" not in stop_ids[aidx + 1:]:
+                continue  # outbound — OTC must come after Arlington
+            dep_secs = stops[aidx][2]
+            # Clybourn arrival (first occurrence after Arlington Heights)
+            clybourn_secs = None
+            for j in range(aidx + 1, len(stops)):
+                if stop_ids[j] == "CLYBOURN":
+                    clybourn_secs = stops[j][2]
+                    break
+            arlington_deps[tid] = {
+                "service_id": upnw_trips[tid],
+                "dep_secs":      dep_secs,
+                "clybourn_secs": clybourn_secs,
+            }
+
+        # 4. Service calendar
+        service_days = {}  # service_id -> list of weekday ints (0=Mon)
+        try:
+            day_cols = ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
+            for row in gtfs_reader(zf, "calendar.txt"):
+                days = [i for i, col in enumerate(day_cols) if row.get(col) == "1"]
+                service_days[row["service_id"]] = days
+        except KeyError:
+            pass
+
+        # 5. Calendar exceptions (added=1, removed=2)
+        service_exceptions = {}  # "service_id|YYYYMMDD" -> 1 or 2
+        try:
+            for row in gtfs_reader(zf, "calendar_dates.txt"):
+                service_exceptions[f"{row['service_id']}|{row['date']}"] = int(row["exception_type"])
+        except KeyError:
+            pass
+
+        result = {
+            "clybourn_deps": clybourn_deps,
+            "arlington_deps": arlington_deps,
+            "service_days": service_days,
+            "service_exceptions": service_exceptions,
+            "updatedAt": now_iso(),
+        }
+        write_json_atomic(METRA_SCHEDULE_CACHE, result)
+        print(f"Metra schedule: {len(clybourn_deps)} outbound Clybourn, {len(arlington_deps)} inbound Arlington trips cached.")
+
+        _metra_schedule = result
+        _metra_schedule_loaded_at = time.time()
+        return result
+
+    except Exception as e:
+        print(f"Metra schedule error: {e}")
+        return None
+
+
+def _filter_schedule_for_today(sched, key):
+    """Return today's running trips from sched[key], keyed by trip_id."""
+    now = datetime.datetime.now()
+    weekday   = now.weekday()
+    today_str = now.strftime("%Y%m%d")
+    result = {}
+    for tid, info in sched.get(key, {}).items():
+        sid = info["service_id"]
+        exc = sched["service_exceptions"].get(f"{sid}|{today_str}")
+        if exc == 2:
+            continue
+        runs = True if exc == 1 else weekday in sched["service_days"].get(sid, [])
+        if runs:
+            result[tid] = info
+    return result
+
+
+def get_scheduled_clybourn_deps():
+    """Return today's outbound UP-NW trips departing Clybourn."""
+    sched = load_metra_static_schedule()
+    return _filter_schedule_for_today(sched, "clybourn_deps") if sched else {}
+
+
+def get_scheduled_arlington_deps():
+    """Return today's inbound UP-NW trips departing Arlington Heights toward OTC."""
+    sched = load_metra_static_schedule()
+    if not sched:
+        return {}
+    # Old cache won't have arlington_deps — force a refresh once
+    if "arlington_deps" not in sched:
+        sched = load_metra_static_schedule(force=True)
+        if not sched:
+            return {}
+    return _filter_schedule_for_today(sched, "arlington_deps")
+
+
+def fetch_metra_clybourn():
+    if not METRA_KEY:
+        return {"rows": [], "error": "Missing METRA_KEY", "updatedAt": now_iso()}
+
+    try:
+        from google.transit import gtfs_realtime_pb2
+
+        # --- Static schedule: today's outbound Clybourn departures ---
+        scheduled = get_scheduled_clybourn_deps()  # trip_id -> {dep_secs, terminal}
+
+        now_dt  = datetime.datetime.now()
+        now_ts  = time.time()
+        midnight = now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # --- Real-time feed: build delay map ---
+        url = f"https://gtfspublic.metrarr.com/gtfs/public/tripupdates?api_token={METRA_KEY}"
+        req = Request(url, headers={"User-Agent": "ctatracker-local/1.0"})
+        ctx = ssl.create_default_context() if VERIFY_SSL else ssl._create_unverified_context()
+        with urlopen(req, timeout=12, context=ctx) as resp:
+            raw = resp.read()
+
+        feed = gtfs_realtime_pb2.FeedMessage()
+        feed.ParseFromString(raw)
+
+        # trip_id -> {dep_time (unix), canceled}
+        realtime = {}
+        for entity in feed.entity:
+            tu = entity.trip_update
+            if tu.trip.route_id != "UP-NW":
+                continue
+            tid = tu.trip.trip_id
+            stop_ids = [s.stop_id for s in tu.stop_time_update]
+
+            # Canceled trip
+            if tu.trip.schedule_relationship == 3:
+                realtime[tid] = {"canceled": True}
+                continue
+
+            if "CLYBOURN" not in stop_ids:
+                continue
+            idx = stop_ids.index("CLYBOURN")
+            if "OTC" in stop_ids[idx + 1:]:
+                continue  # inbound
+            cly = tu.stop_time_update[idx]
+            dep_time = cly.departure.time or cly.arrival.time
+            realtime[tid] = {"dep_time": dep_time, "canceled": False}
+
+        # --- Merge ---
+        results = []
+        for tid, info in scheduled.items():
+            rt = realtime.get(tid, {})
+            if rt.get("canceled"):
+                continue
+
+            # Use real-time time if available, else scheduled
+            rt_dep = rt.get("dep_time")
+            if rt_dep:
+                dep_unix = rt_dep
+            else:
+                dep_unix = midnight.timestamp() + info["dep_secs"]
+
+            if dep_unix < now_ts - 30:
+                continue
+
+            arlington_secs = info.get("arlington_secs")
+            arlington_mins = None
+            if arlington_secs is not None:
+                arlington_mins = round((arlington_secs - info["dep_secs"]) / 60)
+
+            results.append({
+                "tripId": tid,
+                "depTime": dep_unix,
+                "mins": max(0, round((dep_unix - now_ts) / 60)),
+                "terminal": info["terminal"],
+                "realtime": bool(rt_dep),
+                "arlingtonMins": arlington_mins,
+            })
+
+        results.sort(key=lambda x: x["depTime"])
+
+        # Deduplicate: same dep time + terminal = same train (multiple schedule variants)
+        seen = set()
+        deduped = []
+        for r in results:
+            key = (round(r["depTime"]), r["terminal"])
+            if key not in seen:
+                seen.add(key)
+                deduped.append(r)
+
+        return {"rows": deduped[:6], "error": None, "updatedAt": now_iso()}
+
+    except Exception as e:
+        return {"rows": [], "error": str(e), "updatedAt": now_iso()}
+
+
+# ===== Pace =====
+
+def _pace_post(method, body):
+    return http_post_json(
+        f"https://tmweb.pacebus.com/TMWebWatch/Arrivals.aspx/{method}",
+        body,
+        headers={"Content-Type": "application/json; charset=utf-8"},
+    )
+
+
+def _parse_pace_crossing_time(crossing):
+    """Try every known TransitMaster field name and return a naive datetime or None."""
+    now = datetime.datetime.now()
+
+    # Field name candidates (case variants seen across deployments)
+    for tf in ("PredTime", "predTime", "SchedTime", "schedTime", "ArrTime", "arrTime", "DepTime", "depTime"):
+        raw = crossing.get(tf)
+        if not raw:
+            continue
+        raw = str(raw).strip()
+
+        # Period may be embedded ("6:45 am") or in a sibling field
+        period = ""
+        for pf in ("Period", "period", "Meridiem", "meridiem", "AMPM", "ampm"):
+            p = crossing.get(pf)
+            if p:
+                period = str(p).strip().lower()
+                break
+
+        # Strip embedded period from time string
+        for suf in (" am", " pm", "am", "pm"):
+            if raw.lower().endswith(suf):
+                if not period:
+                    period = suf.strip()
+                raw = raw[: -len(suf)].strip()
+                break
+
+        parts = raw.split(":")
+        if len(parts) < 2:
+            continue
+        try:
+            h, m = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+
+        if period == "pm" and h != 12:
+            h += 12
+        elif period == "am" and h == 12:
+            h = 0
+
+        if not (0 <= h <= 23 and 0 <= m <= 59):
+            continue
+
+        dt = now.replace(hour=h, minute=m, second=0, microsecond=0)
+        # If more than 2 h in the past, it must be next-day midnight wrap
+        if dt.timestamp() < now.timestamp() - 7200:
+            dt += datetime.timedelta(days=1)
+        return dt
+
+    return None
+
+
+def _extract_crossings(resp):
+    try:
+        return resp["d"]["routeStops"][0]["stops"][0].get("crossings") or []
+    except (KeyError, IndexError, TypeError):
+        return []
+
+
+def fetch_pace():
+    try:
+        dep_resp = _pace_post("getStopTimes", {
+            "routeID":      PACE_ROUTE_ID,
+            "directionID":  PACE_DIR_ID,
+            "stopID":       PACE_ROSEMONT_STOP,
+            "tpID":         PACE_ROSEMONT_TP,
+            "useArrivalTimes": False,
+        })
+        arr_resp = _pace_post("getStopTimes", {
+            "routeID":      PACE_ROUTE_ID,
+            "directionID":  PACE_DIR_ID,
+            "stopID":       PACE_NW_TRANS_STOP,
+            "tpID":         PACE_NW_TRANS_TP,
+            "useArrivalTimes": True,
+        })
+
+        dep_crossings = _extract_crossings(dep_resp)
+        arr_crossings = _extract_crossings(arr_resp)
+
+        now_ts = time.time()
+        rows = []
+
+        for i, dc in enumerate(dep_crossings):
+            dep_dt = _parse_pace_crossing_time(dc)
+            if dep_dt is None:
+                continue
+            dep_unix = dep_dt.timestamp()
+            if dep_unix < now_ts - 60:
+                continue
+
+            arr_unix = None
+            ride_mins = None
+            if i < len(arr_crossings):
+                arr_dt = _parse_pace_crossing_time(arr_crossings[i])
+                if arr_dt is not None:
+                    arr_unix = arr_dt.timestamp()
+                    ride_mins = round((arr_unix - dep_unix) / 60)
+
+            rows.append({
+                "depTime":  dep_unix,
+                "arrTime":  arr_unix,
+                "mins":     max(0, round((dep_unix - now_ts) / 60)),
+                "rideMins": ride_mins,
+            })
+
+        # If we got no rows at all, log the raw crossings for debugging
+        if not rows and dep_crossings:
+            print(f"Pace: could not parse crossings — sample: {dep_crossings[0]}")
+
+        return {"rows": rows[:4], "error": None, "updatedAt": now_iso()}
+
+    except Exception as e:
+        return {"rows": [], "error": str(e), "updatedAt": now_iso()}
+
+
+# ===== Commute =====
+
+def fetch_commute():
+    if not GOOGLE_API_KEY:
+        return {"error": "Missing GOOGLE_API_KEY", "updatedAt": now_iso()}
+    try:
+        data = http_post_json(
+            "https://routes.googleapis.com/directions/v2:computeRoutes",
+            {
+                "origin": {"address": COMMUTE_ORIGIN},
+                "destination": {"address": COMMUTE_DESTINATION},
+                "travelMode": "DRIVE",
+                "routingPreference": "TRAFFIC_AWARE",
+            },
+            headers={
+                "Content-Type": "application/json",
+                "X-Goog-Api-Key": GOOGLE_API_KEY,
+                "X-Goog-FieldMask": "routes.duration,routes.staticDuration,routes.distanceMeters",
+            },
+        )
+        route = data["routes"][0]
+        duration_secs = int(route["duration"].rstrip("s"))
+        static_secs   = int(route["staticDuration"].rstrip("s"))
+        return {
+            "duration_minutes": round(duration_secs / 60),
+            "static_minutes":   round(static_secs / 60),
+            "distance_miles":   round(route["distanceMeters"] / 1609.34, 1),
+            "error": None,
+            "updatedAt": now_iso(),
+        }
+    except Exception as e:
+        return {"error": str(e), "updatedAt": now_iso()}
+
+
+def fetch_commute_return():
+    if not GOOGLE_API_KEY:
+        return {"error": "Missing GOOGLE_API_KEY", "updatedAt": now_iso()}
+    try:
+        data = http_post_json(
+            "https://routes.googleapis.com/directions/v2:computeRoutes",
+            {
+                "origin": {"address": COMMUTE_RETURN_ORIGIN},
+                "destination": {"address": COMMUTE_RETURN_DESTINATION},
+                "travelMode": "DRIVE",
+                "routingPreference": "TRAFFIC_AWARE",
+                "extraComputations": ["TRAFFIC_ON_POLYLINE"],
+            },
+            headers={
+                "Content-Type": "application/json",
+                "X-Goog-Api-Key": GOOGLE_API_KEY,
+                "X-Goog-FieldMask": "routes.duration,routes.staticDuration,routes.distanceMeters",
+            },
+        )
+        route = data["routes"][0]
+        duration_secs = int(route["duration"].rstrip("s"))
+        static_secs   = int(route["staticDuration"].rstrip("s"))
+        return {
+            "duration_minutes": round(duration_secs / 60),
+            "static_minutes":   round(static_secs / 60),
+            "distance_miles":   round(route["distanceMeters"] / 1609.34, 1),
+            "error": None,
+            "updatedAt": now_iso(),
+        }
+    except Exception as e:
+        return {"error": str(e), "updatedAt": now_iso()}
+
+
+def log_commute_return_datapoint(commute):
+    """Append one JSON line to commute_return_log.jsonl for later analysis."""
+    try:
+        # Next inbound Arlington Heights departure (static schedule)
+        arlington = get_scheduled_arlington_deps()
+        now_ts = time.time()
+        midnight = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        next_train = None
+        for info in sorted(arlington.values(), key=lambda x: x["dep_secs"]):
+            dep_unix = midnight.timestamp() + info["dep_secs"]
+            if dep_unix >= now_ts - 30:
+                ride_mins = None
+                if info.get("clybourn_secs") is not None:
+                    ride_mins = round((info["clybourn_secs"] - info["dep_secs"]) / 60)
+                next_train = {
+                    "mins": max(0, round((dep_unix - now_ts) / 60)),
+                    "ride_mins": ride_mins,
+                }
+                break
+
+        metra_total = (
+            (next_train["mins"] or 0) + (next_train["ride_mins"] or 0)
+        ) if next_train and next_train["ride_mins"] is not None else None
+
+        point = {
+            "ts": now_iso(),
+            "drive_mins": commute.get("duration_minutes"),
+            "drive_static_mins": commute.get("static_minutes"),
+            "drive_miles": commute.get("distance_miles"),
+            "metra_departs_in_mins": next_train["mins"] if next_train else None,
+            "metra_ride_mins": next_train["ride_mins"] if next_train else None,
+            "metra_total_mins": metra_total,
+        }
+        log_file = os.path.join(DATA_DIR, "commute_return_log.jsonl")
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(point) + "\n")
+    except Exception as e:
+        print(f"Return commute log error: {e}")
+
+
+def log_commute_datapoint(commute):
+    """Append one JSON line to commute_log.jsonl for later analysis."""
+    try:
+        metra = {}
+        try:
+            with open(os.path.join(DATA_DIR, "metra_clybourn.json")) as f:
+                metra = json.load(f)
+        except Exception:
+            pass
+
+        next_train = next((r for r in metra.get("rows", []) if r.get("arlingtonMins") is not None), None)
+
+        layout      = read_layout()
+        mpg         = layout.get("mpg", 28)
+        gas_price   = layout.get("gasPrice", 3.50)
+        toll_cost   = layout.get("tollCost", 0)
+        metra_fare  = layout.get("metraFare", 5.50)
+        metra_pass  = layout.get("metraDayPass", 10.00)
+        ticket_mode = layout.get("metraTicketMode", "roundtrip")
+        dist        = commute.get("distance_miles")
+        gas_cost    = round((dist / mpg) * gas_price * 2, 2) if dist else None
+        drive_cost  = round(gas_cost + toll_cost, 2) if gas_cost is not None else None
+        metra_cost  = metra_pass if ticket_mode == "daypass" else round(metra_fare * 2, 2)
+
+        point = {
+            "ts": now_iso(),
+            "drive_mins": commute.get("duration_minutes"),
+            "drive_static_mins": commute.get("static_minutes"),
+            "drive_miles": dist,
+            "drive_cost_usd": drive_cost,
+            "drive_gas_usd": gas_cost,
+            "drive_toll_usd": toll_cost if toll_cost else None,
+            "metra_cost_usd": metra_cost,
+            "metra_ticket_mode": ticket_mode,
+            "metra_departs_in_mins": next_train.get("mins") if next_train else None,
+            "metra_arlington_ride_mins": next_train.get("arlingtonMins") if next_train else None,
+            "metra_total_mins": (
+                (next_train.get("mins") or 0) + (next_train.get("arlingtonMins") or 0)
+            ) if next_train else None,
+        }
+
+        log_file = os.path.join(DATA_DIR, "commute_log.jsonl")
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(point) + "\n")
+    except Exception as e:
+        print(f"Commute log error: {e}")
 
 
 # ===== ESPN Sports =====
@@ -395,22 +1100,99 @@ def fetch_creighton():
     return fetch_team_status(ESPN_NCAAM_SCOREBOARD, ESPN_CREIGHTON_TEAM, is_creighton, "Season complete")
 
 
+# ===== Latest Activity (fitness-logger on the home server) =====
+
+# fitness-logger slugs → the kinds index.html renders ("golf" predates the slug)
+KIND_OVERRIDES = {"golfing": "golf"}
+
+
+def fetch_latest_activity():
+    if not FITNESS_URL or not FITNESS_TOKEN:
+        return {"log": None, "location": None, "error": "Missing fitness-logger config", "updatedAt": now_iso()}
+
+    try:
+        payload = http_get_json(
+            f"{FITNESS_URL}/api/latest-activity",
+            headers={"Authorization": f"Bearer {FITNESS_TOKEN}"},
+        )
+        log = payload.get("log")
+        if not log:
+            return {"log": None, "location": None, "updatedAt": now_iso()}
+
+        slug = log.get("slug") or ""
+        log["_kind"] = KIND_OVERRIDES.get(slug, slug or "unknown")
+        return {"log": log, "location": payload.get("location"), "updatedAt": now_iso()}
+
+    except Exception as e:
+        return {"log": None, "location": None, "error": str(e), "updatedAt": now_iso()}
+
+
 # ===== Poll loops =====
 
+def read_layout():
+    try:
+        with open(os.path.join(DATA_DIR, "layout.json")) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
 def poll_transit():
-    train = fetch_cta_trains("40360")
+    layout    = read_layout()
+    auto_swap = layout.get("autoKimballMetra", True)
+    empty     = {"rows": [], "error": None, "updatedAt": now_iso()}
+
+    # Trains: needed if loop or kimball is on, or auto-swap could show kimball
+    if layout.get("trainLoop", True) or layout.get("trainKimball", True) or auto_swap:
+        train = fetch_cta_trains("40360")
+    else:
+        train = empty
     write_json_atomic(os.path.join(DATA_DIR, "train.json"), train)
 
-    bus_e = fetch_cta_bus_predictions("17833", rt="77", top="6")
+    if layout.get("busEast", True):
+        bus_e = fetch_cta_bus_predictions("17833", rt="77", top="6")
+    else:
+        bus_e = empty
     write_json_atomic(os.path.join(DATA_DIR, "bus_east.json"), bus_e)
 
-    bus_w = fetch_cta_bus_predictions("14920", rt="77", top="6")
+    if layout.get("busWest", True):
+        bus_w = fetch_cta_bus_predictions("14920", rt="77", top="6")
+    else:
+        bus_w = empty
     write_json_atomic(os.path.join(DATA_DIR, "bus_west.json"), bus_w)
 
-    write_json_atomic(os.path.join(DATA_DIR, "now_playing.json"), {"playing": False, "updatedAt": now_iso()})
+    # Metra: needed if explicitly on, or auto-swap could show it during weekday AM
+    if layout.get("metraClybourn", False) or auto_swap:
+        metra = fetch_metra_clybourn()
+    else:
+        metra = empty
+    write_json_atomic(os.path.join(DATA_DIR, "metra_clybourn.json"), metra)
+
+    if layout.get("commute", True):
+        pace = fetch_pace()
+        blue = fetch_blue_line_timing()
+    else:
+        pace = {"rows": [], "error": None, "updatedAt": now_iso()}
+        blue = {"rows": [], "error": None, "updatedAt": now_iso()}
+    write_json_atomic(os.path.join(DATA_DIR, "pace_600.json"), pace)
+    write_json_atomic(os.path.join(DATA_DIR, "blue_line.json"), blue)
+
+    if layout.get("nowPlaying", True):
+        try:
+            now_playing = http_get_json("http://localhost:3000/api/sonos/now-playing")
+            now_playing["updatedAt"] = now_iso()
+        except Exception as e:
+            now_playing = {"playing": False, "error": str(e), "updatedAt": now_iso()}
+    else:
+        now_playing = {"playing": False, "updatedAt": now_iso()}
+    write_json_atomic(os.path.join(DATA_DIR, "now_playing.json"), now_playing)
 
 
 def poll_sports():
+    layout = read_layout()
+    if not layout.get("sports", True):
+        return
+
     for name, fetcher in [("bulls", fetch_bulls), ("bears", fetch_bears), ("creighton", fetch_creighton)]:
         try:
             data = fetcher()
@@ -425,7 +1207,9 @@ def poll_sports():
 def main():
     ensure_dir(DATA_DIR)
 
-    last_sports = 0
+    last_sports   = 0
+    last_commute  = 0
+    last_activity = 0
 
     print("Poller started:", now_iso())
 
@@ -442,6 +1226,27 @@ def main():
             except Exception as e:
                 print(f"Sports poll error: {e}")
             last_sports = now
+
+        if now - last_commute >= COMMUTE_INTERVAL:
+            layout = read_layout()
+            now_dt = datetime.datetime.now()
+            if layout.get("commute", True) and is_weekday_morning():
+                try:
+                    commute = fetch_commute()
+                    write_json_atomic(os.path.join(DATA_DIR, "commute.json"), commute)
+                except Exception as e:
+                    print(f"Commute poll error: {e}")
+            last_commute = now
+
+        if now - last_activity >= ACTIVITY_INTERVAL:
+            layout = read_layout()
+            if layout.get("latestActivity", True):
+                try:
+                    activity = fetch_latest_activity()
+                    write_json_atomic(os.path.join(DATA_DIR, "latest_activity.json"), activity)
+                except Exception as e:
+                    print(f"Activity poll error: {e}")
+            last_activity = now
 
         print("Updated:", now_iso())
         time.sleep(TRANSIT_INTERVAL)

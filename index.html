@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="refresh" content="1800" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <title>CTA Wall — Southport</title>
 </head>
 
@@ -12,34 +13,96 @@
 
 <header>
   <div class="timestamp" id="timestamp">Loading…</div>
+  <div class="presence-dot" id="presenceDot" title="Home presence"></div>
 </header>
 
 <section class="list">
 
-  <div class="marquee">
+  <div class="marquee" id="trainLoopMarquee">
     <span class="station-label">Brown Line → Loop</span>
     <img src="./images/train.png" class="runner" id="trainLoopRun" />
   </div>
   <div id="trainLoopBody" class="arrival-group">Loading…</div>
 
-  <div class="marquee">
+  <div class="marquee" id="trainKimballMarquee">
     <span class="station-label">Brown Line → Kimball</span>
     <img src="./images/train.png" class="runner" id="trainKimballRun" />
   </div>
   <div id="trainKimballBody" class="arrival-group">Loading…</div>
 
-  <div class="marquee">
+  <div class="marquee" id="metraClybournMarquee">
+    <span class="station-label">Metra UP-NW → Outbound</span>
+    <img src="./images/train.png" class="runner" id="metraClybournRun" />
+  </div>
+  <div id="metraClybournBody" class="arrival-group">Loading…</div>
+
+  <div class="marquee" id="busEastMarquee">
     <span class="station-label">#77 Eastbound → Lake Shore</span>
     <img src="./images/bus.png" class="runner" id="busEastRun" />
   </div>
   <div id="busEastBody" class="arrival-group">Loading…</div>
 
-  <div class="marquee">
+  <div class="marquee" id="busWestMarquee">
     <span class="station-label">#77 Westbound → Cumberland</span>
     <img src="./images/bus.png" class="runner" id="busWestRun" />
   </div>
   <div id="busWestBody" class="arrival-group">Loading…</div>
 
+</section>
+
+<section class="commute-card" id="commuteCard">
+  <div class="commute-mode">
+    <div class="commute-label">Drive</div>
+    <div class="commute-time" id="commuteDriveTime">--</div>
+    <div class="commute-sub" id="commuteDriveSub">estimated arrival</div>
+    <div class="commute-cost" id="commuteDriveCost"></div>
+  </div>
+  <div class="commute-divider"></div>
+  <div class="commute-mode">
+    <div class="commute-label">CTA</div>
+    <div class="commute-time" id="commuteCtaTime">--</div>
+    <div class="commute-sub" id="commuteCtaSub">Pace 600 departs</div>
+    <div class="commute-extra" id="commuteCtaBikeEta"></div>
+    <div class="commute-extra" id="commuteCtaBlueDep"></div>
+    <div class="commute-leave" id="commuteCtaLeave"></div>
+    <div class="commute-cost" id="commuteCtaCost"></div>
+  </div>
+  <div class="commute-divider"></div>
+  <div class="commute-mode">
+    <div class="commute-label">Metra</div>
+    <div class="commute-time" id="commuteTrainTime">--</div>
+    <div class="commute-sub" id="commuteTrainSub">min ride</div>
+    <div class="commute-extra" id="commuteBikeEta"></div>
+    <div class="commute-leave" id="commuteLeave"></div>
+    <div class="commute-cost" id="commuteTrainCost"></div>
+  </div>
+</section>
+
+<section class="bike-card" id="bikeCard">
+  <div class="bike-header">BIKING</div>
+  <div class="bike-col">
+    <div class="bike-location">Lakeview</div>
+    <div class="bike-row">
+      <span class="bike-leg">To Metra</span>
+      <span class="bike-pct" id="bikeHomeMorning">--</span>
+    </div>
+    <div class="bike-row">
+      <span class="bike-leg">From Metra</span>
+      <span class="bike-pct" id="bikeHomeReturn">--</span>
+    </div>
+  </div>
+  <div class="bike-divider"></div>
+  <div class="bike-col">
+    <div class="bike-location">Arlington Hts</div>
+    <div class="bike-row">
+      <span class="bike-leg">From Metra</span>
+      <span class="bike-pct" id="bikeOfficeMorning">--</span>
+    </div>
+    <div class="bike-row">
+      <span class="bike-leg">To Metra</span>
+      <span class="bike-pct" id="bikeOfficeReturn">--</span>
+    </div>
+  </div>
 </section>
 
 <section class="bottom-row">
@@ -145,23 +208,129 @@
       </div>
 
     </div>
+
+    <div class="activity-card" id="activityCard">Loading…</div>
   </div>
 </section>
 
-<section class="pullup-card">
-  <div class="pullup-person">
-    <div class="pullup-initial">Colin</div>
-    <div class="pullup-count" id="pullupColin">0</div>
+<section class="pullup-card" id="pullupCard">
+  <div class="pullup-today">
+    <div class="pullup-today-label">PULL-UPS</div>
+    <div class="pullup-today-counts">
+      <div class="pullup-person">
+        <div class="pullup-initial">Colin</div>
+        <div class="pullup-count" id="pullupColin">0</div>
+      </div>
+      <div class="pullup-divider"></div>
+      <div class="pullup-person">
+        <div class="pullup-initial">Lucas</div>
+        <div class="pullup-count" id="pullupLucas">0</div>
+      </div>
+    </div>
   </div>
-  <div class="pullup-divider"></div>
-  <div class="pullup-person">
-    <div class="pullup-initial">Lucas</div>
-    <div class="pullup-count" id="pullupLucas">0</div>
+  <div class="pullup-stats-divider"></div>
+  <div class="pullup-stats" id="pullupStats">
+    <div class="pullup-stat-label" id="pullupStatLabel">Loading...</div>
+    <div class="pullup-stat-values" id="pullupStatValues"></div>
   </div>
 </section>
 
+<section class="pullup-card" id="pushupCard">
+  <div class="pullup-today">
+    <div class="pullup-today-label">PUSH-UPS</div>
+    <div class="pullup-today-counts">
+      <div class="pullup-person">
+        <div class="pullup-initial">Colin</div>
+        <div class="pullup-count" id="pushupColin">0</div>
+      </div>
+      <div class="pullup-divider"></div>
+      <div class="pullup-person">
+        <div class="pullup-initial">Lucas</div>
+        <div class="pullup-count" id="pushupLucas">0</div>
+      </div>
+    </div>
+  </div>
+  <div class="pullup-stats-divider"></div>
+  <div class="pullup-stats" id="pushupStats">
+    <div class="pullup-stat-label" id="pushupStatLabel">Loading...</div>
+    <div class="pullup-stat-values" id="pushupStatValues"></div>
+  </div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const classify = (m)=> m<=1 ? "due" : (m<=5 ? "soon" : "ok");
+
+/* ========= Module registry ========= */
+const MODULES = [
+  { key: 'trainLoop',     label: 'Brown Line → Loop',      ids: ['trainLoopMarquee',      'trainLoopBody'] },
+  { key: 'trainKimball',  label: 'Brown Line → Kimball',   ids: ['trainKimballMarquee',   'trainKimballBody'] },
+  { key: 'metraClybourn', label: 'Metra UP-NW Outbound',  ids: ['metraClybournMarquee',  'metraClybournBody'] },
+  { key: 'busEast',       label: '#77 Eastbound',          ids: ['busEastMarquee',        'busEastBody'] },
+  { key: 'busWest',       label: '#77 Westbound',          ids: ['busWestMarquee',        'busWestBody'] },
+  { key: 'nowPlaying',    label: 'Now Playing',            ids: ['nowplaying'] },
+  { key: 'weather',       label: 'Weather',                ids: ['weather'] },
+  { key: 'sports',         label: 'Sports',          ids: ['sportsCard'] },
+  { key: 'latestActivity', label: 'Latest Activity', ids: ['activityCard'] },
+  { key: 'pullups',       label: 'Pull-Ups',               ids: ['pullupCard'] },
+  { key: 'pushups',       label: 'Push-Ups',               ids: ['pushupCard'] },
+  { key: 'commute',       label: 'Commute Tracker',        ids: ['commuteCard', 'bikeCard'] },
+];
+
+const LAYOUT_DEFAULTS = {
+  theme: 'auto',
+  autoKimballMetra: true,
+  trainLoop: true, trainKimball: true, metraClybourn: false,
+  busEast: true, busWest: true,
+  nowPlaying: true, weather: true, sports: true, latestActivity: true, commute: true, autoCommute: true,
+  bikeToMetra: 10, bikeFromMetra: 16, mpg: 28, gasPrice: 3.50, tollCost: 0,
+  ctaTicketMode: 'roundtrip', ctaFare: 2.50, ctaDayPass: 5.00,
+  bikeToBlue: 10, blueLineMins: 30, bikeFromPace: 10,
+  metraFare: 5.50, metraDayPass: 10.00, metraTicketMode: 'roundtrip',
+  pullups: true, pushups: true,
+};
+
+let layoutState = { ...LAYOUT_DEFAULTS };
+let presenceState = { home: false };
+let commuteState = null; // set by loadCommute, consumed by loadBikeWeather
+
+function applyLayout(cfg) {
+  applyTheme(cfg.theme || 'auto');
+  MODULES.forEach(m => {
+    let visible;
+    if (m.key === 'commute') {
+      const timeOk = cfg.autoCommute !== false ? isWeekdayMorning() : cfg.commute !== false;
+      visible = presenceState.home && timeOk;
+    } else if (cfg.autoKimballMetra !== false &&
+        (m.key === 'trainKimball' || m.key === 'metraClybourn')) {
+      const wm = isWeekdayMorning() && presenceState.home;
+      visible = (m.key === 'metraClybourn') ? wm : !wm;
+    } else {
+      visible = cfg[m.key] !== false;
+    }
+    m.ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = visible ? '' : 'none';
+    });
+  });
+}
+
+async function loadLayout() {
+  try {
+    const cfg = await fetchJSON('./data/layout.json');
+    layoutState = { ...LAYOUT_DEFAULTS, ...cfg };
+  } catch {
+    layoutState = { ...LAYOUT_DEFAULTS };
+  }
+  try {
+    presenceState = await fetchJSON('/api/presence');
+  } catch {
+    presenceState = { home: false };
+  }
+  const dot = document.getElementById('presenceDot');
+  if (dot) dot.classList.toggle('home', !!presenceState.home);
+  applyLayout(layoutState);
+}
 
 /* ========= Slideshow config ========= */
 const SLIDESHOW_IMAGES = [
@@ -267,13 +436,13 @@ function isNightNow(){
   const m = now.getMinutes();
   return (h > 18) || (h === 18 && m >= 1) || (h < 6);
 }
-function applyThemeByTime(){
+function applyTheme(mode) {
   const root = document.documentElement;
-  if (isNightNow()) root.classList.add('night');
-  else root.classList.remove('night');
+  const night = mode === 'night' || (mode !== 'day' && isNightNow());
+  root.classList.toggle('night', night);
 }
-applyThemeByTime();
-setInterval(applyThemeByTime, 5 * 60 * 1000);
+applyTheme('auto');
+setInterval(() => applyTheme(layoutState.theme || 'auto'), 5 * 60 * 1000);
 
 function wxIconFile(code, now=new Date()){
   const h=now.getHours(), m=now.getMinutes();
@@ -318,6 +487,64 @@ async function loadWeather(){
     const el=document.getElementById("weather");
     el.querySelector(".wx-icon").src='';
     el.querySelector(".wx-desc").textContent="Weather unavailable";
+  }
+}
+
+/* ===== Bike weather ===== */
+async function loadBikeWeather() {
+  const cs = commuteState;
+
+  const LOCS = [
+    {
+      lat: 41.9434, lon: -87.6598,
+      morningTs: cs?.homeMorningTs,    morningId: 'bikeHomeMorning',
+      returnTs:  cs?.homeReturnTs,     returnId:  'bikeHomeReturn',
+    },
+    {
+      lat: 42.0884, lon: -87.9806,
+      morningTs: cs?.arlingtonMorningTs, morningId: 'bikeOfficeMorning',
+      returnTs:  cs?.arlingtonReturnTs,  returnId:  'bikeOfficeReturn',
+    },
+  ];
+
+  const fmtTime = ts => new Date(ts * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  // Look up an hourly value at a given unix timestamp
+  function hourlyAt(times, vals, ts) {
+    if (!ts || !times || !vals) return null;
+    const targetH = new Date(ts * 1000).getHours();
+    let best = 0;
+    for (let i = 0; i < times.length; i++) {
+      const h = parseInt(times[i].slice(11, 13), 10);
+      if (h <= targetH) best = i; else break;
+    }
+    return vals[best] ?? null;
+  }
+
+  function renderPct(id, prob, temp, ts) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (prob == null) { el.textContent = '--'; el.className = 'bike-pct'; return; }
+    const timeStr = ts ? ` @ ${fmtTime(ts)}` : '';
+    const tempStr = temp != null ? ` · ${Math.round(temp)}°F` : '';
+    el.textContent = `${prob}%${tempStr}${timeStr}`;
+    el.className = 'bike-pct' + (prob >= 50 ? ' rain' : prob >= 30 ? ' iffy' : '');
+  }
+
+  for (const loc of LOCS) {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}` +
+      `&hourly=precipitation_probability,temperature_2m&temperature_unit=fahrenheit&forecast_days=1&timezone=America%2FChicago`;
+    try {
+      const j = await (await fetch(url, {cache:'no-store'})).json();
+      const times = j.hourly.time;
+      const probs = j.hourly.precipitation_probability;
+      const temps = j.hourly.temperature_2m;
+      renderPct(loc.morningId, hourlyAt(times, probs, loc.morningTs), hourlyAt(times, temps, loc.morningTs), loc.morningTs);
+      renderPct(loc.returnId,  hourlyAt(times, probs, loc.returnTs),  hourlyAt(times, temps, loc.returnTs),  loc.returnTs);
+    } catch {
+      renderPct(loc.morningId, null, null, null);
+      renderPct(loc.returnId,  null, null, null);
+    }
   }
 }
 
@@ -398,6 +625,47 @@ async function loadTrains(){
     console.error("train load error", e);
     document.querySelector("#trainLoopBody").innerHTML="<div class='row empty'>Error</div>";
     document.querySelector("#trainKimballBody").innerHTML="<div class='row empty'>Error</div>";
+  }
+}
+
+function isWeekdayMorning(){
+  const now = new Date();
+  const day = now.getDay();
+  const h = now.getHours();
+  return day >= 1 && day <= 5 && h >= 5 && h < 10;
+}
+
+function renderMetra(rows, target, runner){
+  const el = document.querySelector(target);
+  if (!rows.length){
+    el.innerHTML = `<div class="row empty">No departures</div>`;
+    controlRunner(document.querySelector(runner), false);
+    return;
+  }
+  let anyDue = false;
+  el.innerHTML = rows.slice(0, 3).map(x => {
+    const mins = x.mins != null ? x.mins : Math.max(0, Math.round((x.depTime * 1000 - Date.now()) / 60000));
+    if (mins <= 1) anyDue = true;
+    const eta = mins <= 1 ? "DUE" : `${mins} min`;
+    const rtDot = x.realtime ? `<span class="rt-dot" title="Live"></span>` : '';
+    return `<div class="row ${classify(mins)}">
+      <div class="meta">
+        <div class="route">Metra UP-NW${rtDot}</div>
+        <div class="dest">${x.terminal || 'Outbound'}</div>
+      </div>
+      <div class="eta">${eta}</div>
+    </div>`;
+  }).join("");
+  controlRunner(document.querySelector(runner), anyDue);
+}
+
+async function loadMetra(){
+  try {
+    const data = await fetchJSON("./data/metra_clybourn.json");
+    renderMetra(data.rows || [], "#metraClybournBody", "#metraClybournRun");
+  } catch(e) {
+    console.error("metra load error", e);
+    document.querySelector("#metraClybournBody").innerHTML = "<div class='row empty'>Error</div>";
   }
 }
 
@@ -621,8 +889,11 @@ async function loadNowPlaying(){
     const fill     = document.getElementById('npFill');
     const meta     = document.querySelector('.np-meta');
 
+    const TV_TITLES = ['tv', 'television', 'line-in', 'line in', 'optical', 'hdmi', 'aux', 'airplay'];
     const hasRealTrack =
-      j && j.playing && j.title && j.title.toLowerCase() !== 'spotify';
+      j && j.playing && j.title &&
+      j.title.toLowerCase() !== 'spotify' &&
+      !TV_TITLES.some(t => j.title.toLowerCase() === t);
 
     if (hasRealTrack){
       stopSlideshow();
@@ -650,19 +921,398 @@ async function loadNowPlaying(){
   }
 }
 
+/* ===== Commute ===== */
+async function loadCommute() {
+  try {
+    const [cd, md, pd, bd] = await Promise.all([
+      fetch('./data/commute.json', { cache: 'no-store' }).then(r => r.json()),
+      fetch('./data/metra_clybourn.json', { cache: 'no-store' }).then(r => r.json()),
+      fetch('./data/pace_600.json', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ rows: [] })),
+      fetch('./data/blue_line.json', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ rows: [] })),
+    ]);
+
+    const fmt = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const now = new Date();
+    const bikeToMetra   = layoutState.bikeToMetra   ?? 10;
+    const bikeFromMetra = layoutState.bikeFromMetra ?? 16;
+    const mpg              = layoutState.mpg              ?? 28;
+    const gasPrice         = layoutState.gasPrice         ?? 3.50;
+    const ctaTicketMode    = layoutState.ctaTicketMode    ?? 'roundtrip';
+    const ctaFare          = layoutState.ctaFare          ?? 2.50;
+    const ctaDayPass       = layoutState.ctaDayPass       ?? 5.00;
+    const bikeToBlue       = layoutState.bikeToBlue       ?? 10;
+    const blueLineMins     = layoutState.blueLineMins     ?? 30;
+    const bikeFromPace     = layoutState.bikeFromPace     ?? 10;
+    const metraFare        = layoutState.metraFare        ?? 5.50;
+    const metraDayPass     = layoutState.metraDayPass     ?? 10.00;
+    const metraTicketMode  = layoutState.metraTicketMode  ?? 'roundtrip';
+    const tollCost         = layoutState.tollCost         ?? 0;
+
+    const driveEl      = document.getElementById('commuteDriveTime');
+    const driveSubEl   = document.getElementById('commuteDriveSub');
+    const driveCostEl  = document.getElementById('commuteDriveCost');
+    if (driveEl && cd && !cd.error) {
+      const eta = new Date(now.getTime() + cd.duration_minutes * 60000);
+      driveEl.textContent = fmt(eta);
+      const diff = cd.duration_minutes - cd.static_minutes;
+      driveSubEl.textContent = diff > 0 ? `${cd.duration_minutes} min (+${diff} traffic)` : `${cd.duration_minutes} min`;
+      if (driveCostEl && cd.distance_miles) {
+        const gasCost = (cd.distance_miles / mpg) * gasPrice * 2;
+        const totalDriveCost = gasCost + tollCost;
+        const costParts = [`~$${gasCost.toFixed(2)} gas`];
+        if (tollCost > 0) costParts.push(`$${tollCost.toFixed(2)} tolls`);
+        driveCostEl.textContent = `$${totalDriveCost.toFixed(2)} r/t (${costParts.join(' + ')})`;
+      }
+    }
+
+    const ctaEl        = document.getElementById('commuteCtaTime');
+    const ctaSubEl     = document.getElementById('commuteCtaSub');
+    const ctaCostEl    = document.getElementById('commuteCtaCost');
+    const ctaBikeEtaEl = document.getElementById('commuteCtaBikeEta');
+    const ctaLeaveEl   = document.getElementById('commuteCtaLeave');
+
+    if (ctaCostEl) {
+      if (ctaTicketMode === 'daypass') {
+        ctaCostEl.textContent = `$${Number(ctaDayPass).toFixed(2)} day pass`;
+      } else {
+        ctaCostEl.textContent = `$${(Number(ctaFare) * 2).toFixed(2)} r/t (2× ticket)`;
+      }
+    }
+
+    if (ctaEl && pd && pd.rows && pd.rows.length > 0) {
+      // Find best Pace + Blue Line combination:
+      // For each Pace bus (earliest first), find all Blue Line trains where:
+      //   1. Train arrives Rosemont >= 5 min before Pace departs
+      //   2. Train arrives Belmont with enough time to bike there (belmontArr >= now + bikeToBlue)
+      // Among valid trains, pick the LATEST one (maximizes time at home).
+      const nowTs = now.getTime() / 1000;
+      let paceRide = null, blueTrain = null;
+      for (const pace of pd.rows) {
+        const needRosemontBy = pace.depTime - 5 * 60;
+        const candidates = (bd?.rows || []).filter(b =>
+          b.rosemontArr <= needRosemontBy &&
+          b.belmontArr >= nowTs + bikeToBlue * 60
+        );
+        if (candidates.length > 0) {
+          // Pick the latest Blue Line train that still connects
+          paceRide = pace;
+          blueTrain = candidates[candidates.length - 1];
+          break;
+        }
+        // No valid Blue Line — is this Pace bus still catchable via fallback timing?
+        const fallbackLeave = pace.depTime - (blueLineMins + bikeToBlue + 5) * 60;
+        if (fallbackLeave >= nowTs - 120) {
+          paceRide = pace;
+          break;
+        }
+        // This bus is fully missed — skip to the next one
+      }
+      // Last resort: show the final upcoming Pace bus
+      if (!paceRide && pd.rows.length) paceRide = pd.rows[pd.rows.length - 1];
+
+      if (paceRide.rideMins != null) {
+        const officeEta = new Date(paceRide.arrTime * 1000 + bikeFromPace * 60000);
+        ctaEl.textContent = fmt(officeEta);
+        ctaSubEl.textContent = `Pace departs ${fmt(new Date(paceRide.depTime * 1000))} · ${paceRide.rideMins} min ride`;
+        if (ctaBikeEtaEl) ctaBikeEtaEl.textContent = '';
+      } else {
+        ctaEl.textContent = fmt(new Date(paceRide.depTime * 1000));
+        ctaSubEl.textContent = `departs Rosemont`;
+        if (ctaBikeEtaEl) ctaBikeEtaEl.textContent = '';
+      }
+
+      // Blue Line info line
+      if (blueTrain) {
+        const blueDepEl = document.getElementById('commuteCtaBlueDep');
+        if (blueDepEl) blueDepEl.textContent = `Blue Line ${fmt(new Date(blueTrain.belmontArr * 1000))} from Belmont · ${blueTrain.rideMins} min to Rosemont`;
+      }
+
+      // Leave-by countdown
+      const leaveByTs = blueTrain
+        ? blueTrain.belmontArr - bikeToBlue * 60
+        : paceRide.depTime - (blueLineMins + bikeToBlue + 5) * 60;
+      const leaveInMins = Math.round((leaveByTs - now.getTime() / 1000) / 60);
+      if (ctaLeaveEl) {
+        if (leaveInMins <= 0) {
+          ctaLeaveEl.textContent = leaveInMins < -2 ? 'Train missed' : 'Leave now!';
+          ctaLeaveEl.className = 'commute-leave urgent';
+        } else {
+          ctaLeaveEl.textContent = `Leave in ${leaveInMins} min`;
+          ctaLeaveEl.className = leaveInMins <= 5 ? 'commute-leave urgent' : 'commute-leave';
+        }
+      }
+    } else if (ctaEl) {
+      ctaEl.textContent = '--';
+      ctaSubEl.textContent = 'no buses';
+      if (ctaBikeEtaEl) ctaBikeEtaEl.textContent = '';
+      if (ctaLeaveEl) ctaLeaveEl.textContent = '';
+    }
+
+    const trainEl      = document.getElementById('commuteTrainTime');
+    const trainSubEl   = document.getElementById('commuteTrainSub');
+    const bikeEtaEl    = document.getElementById('commuteBikeEta');
+    const leaveEl      = document.getElementById('commuteLeave');
+    const trainCostEl  = document.getElementById('commuteTrainCost');
+    if (trainCostEl) {
+      if (metraTicketMode === 'daypass') {
+        trainCostEl.textContent = `$${Number(metraDayPass).toFixed(2)} day pass`;
+      } else {
+        trainCostEl.textContent = `$${(Number(metraFare) * 2).toFixed(2)} r/t (2× ticket)`;
+      }
+    }
+    if (trainEl && md && md.rows && md.rows.length > 0) {
+      const next = md.rows.find(r => r.arlingtonMins != null) || md.rows[0];
+      if (next.arlingtonMins != null) {
+        const bikeEta = new Date(next.depTime * 1000 + (next.arlingtonMins + bikeFromMetra) * 60000);
+        trainEl.textContent = fmt(bikeEta);
+        trainSubEl.textContent = `Metra departs in ${next.mins} min · ${next.arlingtonMins} min to Arlington Hts`;
+
+        // Share timing with loadBikeWeather
+        const workWindow = layoutState.workWindow ?? 9;
+        const officeArrTs = next.depTime + (next.arlingtonMins + bikeFromMetra) * 60;
+        const officeDeptTs = officeArrTs + workWindow * 3600;
+        commuteState = {
+          homeMorningTs:     now.getTime() / 1000 + bikeToMetra * 60,
+          arlingtonMorningTs: next.depTime + next.arlingtonMins * 60,
+          arlingtonReturnTs:  officeDeptTs,
+          homeReturnTs:       officeDeptTs + bikeFromMetra * 60 + next.arlingtonMins * 60 + bikeToMetra * 60,
+        };
+
+        if (bikeEtaEl) bikeEtaEl.textContent = '';
+
+        const leaveInMins = Math.round((next.depTime - bikeToMetra * 60 - now.getTime() / 1000) / 60);
+        if (leaveEl) {
+          if (leaveInMins <= 0) {
+            leaveEl.textContent = leaveInMins < -2 ? 'Train missed' : 'Leave now!';
+            leaveEl.className = 'commute-leave urgent';
+          } else {
+            leaveEl.textContent = `Leave in ${leaveInMins} min`;
+            leaveEl.className = leaveInMins <= 5 ? 'commute-leave urgent' : 'commute-leave';
+          }
+        }
+      } else {
+        const eta = new Date(next.depTime * 1000);
+        trainEl.textContent = fmt(eta);
+        trainSubEl.textContent = `departs in ${next.mins} min`;
+        if (bikeEtaEl) bikeEtaEl.textContent = '';
+        if (leaveEl)   leaveEl.textContent = '';
+      }
+    }
+  } catch(e) {
+    console.error('commute load error', e);
+  }
+}
+
+/* ===== Latest Activity ===== */
+let activityMapInstance = null;
+let lastActivityLogId = null;
+
+function decodePolyline(str) {
+  const coords = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < str.length) {
+    let b, shift = 0, result = 0;
+    do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    coords.push([lat / 1e5, lng / 1e5]);
+  }
+  return coords;
+}
+
+function actRelativeTime(dt) {
+  const diff = Date.now() - dt.getTime();
+  const days  = Math.floor(diff / 86400000);
+  const hours = Math.floor(diff / 3600000);
+  const mins  = Math.floor(diff / 60000);
+  if (days  > 0) return `${days}d ago`;
+  if (hours > 0) return `${hours}h ago`;
+  if (mins  > 0) return `${mins}m ago`;
+  return 'just now';
+}
+
+function actFmtDuration(secs) {
+  const s = Math.round(secs);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return h > 0 ? `${h}h ${String(m).padStart(2,'0')}m` : `${m}m`;
+}
+
+function actFmtPace(secs, miles) {
+  if (!secs || !miles) return null;
+  const spm = secs / miles;
+  const m = Math.floor(spm / 60);
+  const s = Math.round(spm % 60);
+  return `${m}:${String(s).padStart(2,'0')} /mi`;
+}
+
+async function loadLatestActivity() {
+  try {
+    const j = await fetchJSON('./data/latest_activity.json');
+    const card = document.getElementById('activityCard');
+    if (!card) return;
+
+    const log = j.log;
+    if (!log) {
+      if (activityMapInstance) { activityMapInstance.remove(); activityMapInstance = null; }
+      card.innerHTML = '<div style="opacity:0.45;font-size:14px">No activity logged yet</div>';
+      return;
+    }
+
+    // Skip full re-render if same log (map stays intact)
+    if (log.id && log.id === lastActivityLogId) return;
+    lastActivityLogId = log.id || null;
+
+    // Destroy old map before wiping innerHTML
+    if (activityMapInstance) { activityMapInstance.remove(); activityMapInstance = null; }
+
+    const kind = log._kind;
+    const data = log.data || {};
+    const loc  = j.location;
+    const dt   = log.datetime ? new Date(log.datetime) : null;
+    const dateStr = dt ? dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    const relStr  = dt ? actRelativeTime(dt) : '';
+
+    let title = '';
+    const stats = [];
+    let notes = '';
+    let polylineStr = null;
+    let pinLatLon = null;
+
+    if (kind === 'running' || kind === 'hiking') {
+      const emoji = kind === 'running' ? '🏃' : '🥾';
+      const miles = data.distance ? (data.distance / 1609.34).toFixed(2) : null;
+      const elev  = data.total_elevation_gain != null ? Math.round(data.total_elevation_gain) : null;
+      const dur   = data.elapsed_time != null ? actFmtDuration(data.elapsed_time) : null;
+      const pace  = data.elapsed_time && data.distance ? actFmtPace(data.elapsed_time, data.distance / 1609.34) : null;
+      title = `${emoji} ${data.name || (kind === 'running' ? 'Run' : 'Hike')}`;
+      if (miles) stats.push(['Distance',  `${miles} mi`]);
+      if (elev)  stats.push(['Elevation', `${elev} ft`]);
+      if (dur)   stats.push(['Duration',  dur]);
+      if (pace)  stats.push(['Pace',      pace]);
+      polylineStr = data.map?.summary_polyline || data.polyline || null;
+    } else if (kind === 'lifting') {
+      title = '🏋️ Lifting';
+      const squat    = data.squat?.work?.[0]?.weight;
+      const bench    = data.bench?.work?.[0]?.weight;
+      const deadlift = data.deadlift?.work?.[0]?.weight;
+      const overhead = data.overhead?.work?.[0]?.weight;
+      const clean    = data.clean?.work?.[0]?.weight;
+      const pullups  = Array.isArray(data.pullups) ? data.pullups.reduce((s, set) => s + (set.reps || 0), 0) : null;
+      if (squat)    stats.push(['Squat',    `${squat} lbs`]);
+      if (bench)    stats.push(['Bench',    `${bench} lbs`]);
+      if (deadlift) stats.push(['Deadlift', `${deadlift} lbs`]);
+      if (overhead) stats.push(['Overhead', `${overhead} lbs`]);
+      if (clean)    stats.push(['Clean',    `${clean} lbs`]);
+      if (pullups)  stats.push(['Pull-ups', `${pullups} reps`]);
+      notes = data.notes || '';
+    } else if (kind === 'golf') {
+      title = `⛳ ${loc?.name || 'Golf'}`;
+      if (data.holes   != null) stats.push(['Holes',   data.holes]);
+      if (data.score   != null) stats.push(['Score',   data.score]);
+      if (data.players != null) stats.push(['Players', data.players]);
+      notes = data.notes || '';
+      if (loc?.lat && loc?.lon) pinLatLon = [loc.lat, loc.lon];
+    } else if (kind === 'skiing') {
+      title = `⛷️ ${loc?.name || 'Skiing'}`;
+      if (data.runs     != null) stats.push(['Runs',     data.runs]);
+      if (data.vertical != null) stats.push(['Vertical', `${Number(data.vertical).toLocaleString()} ft`]);
+      if (data.duration != null) stats.push(['Duration', `${data.duration} min`]);
+      if (loc?.lat && loc?.lon) pinLatLon = [loc.lat, loc.lon];
+    } else if (kind === 'surfing') {
+      title = `🏄 ${loc?.name || 'Surfing'}`;
+      if (data.board)    stats.push(['Board',    data.board]);
+      if (data.duration) stats.push(['Duration', `${data.duration} min`]);
+      if (data.waves)    stats.push(['Waves',    data.waves]);
+      if (data.height)   stats.push(['Height',   data.height]);
+      notes = data.notes || '';
+      if (loc?.lat && loc?.lon) pinLatLon = [loc.lat, loc.lon];
+    } else if (kind === 'basketball' || kind === 'volleyball') {
+      const emoji = kind === 'basketball' ? '🏀' : '🏐';
+      title = `${emoji} ${loc?.name || (kind === 'basketball' ? 'Basketball' : 'Volleyball')}`;
+      if (data.games        != null) stats.push(['Games',    data.games]);
+      if (data.sets         != null) stats.push(['Sets',     data.sets]);
+      if (data.players      != null) stats.push(['Players',  data.players]);
+      if (data.duration_min != null) stats.push(['Duration', `${data.duration_min} min`]);
+      notes = data.notes || '';
+      if (loc?.lat && loc?.lon) pinLatLon = [loc.lat, loc.lon];
+    } else if (kind === 'snorkeling') {
+      title = `🤿 ${loc?.name || 'Snorkeling'}`;
+      if (data.duration) stats.push(['Duration', `${data.duration} min`]);
+      notes = data.notes || '';
+      if (loc?.lat && loc?.lon) pinLatLon = [loc.lat, loc.lon];
+    } else {
+      title = '🏅 Latest Activity';
+    }
+
+    const showMap = !!(polylineStr || pinLatLon);
+
+    const statsHTML = stats.map(([label, value]) =>
+      `<div class="activity-stat">
+        <div class="activity-stat-label">${label}</div>
+        <div class="activity-stat-value">${value}</div>
+      </div>`
+    ).join('');
+
+    card.innerHTML =
+      `<div class="activity-header">
+        <div class="activity-title">${title}</div>
+        <div class="activity-date">${dateStr}${relStr ? ` · ${relStr}` : ''}</div>
+      </div>
+      ${statsHTML ? `<div class="activity-stats-grid">${statsHTML}</div>` : ''}
+      ${notes ? `<div class="activity-notes">"${notes}"</div>` : ''}
+      ${showMap ? `<div id="activityMap" class="activity-map"></div>` : ''}`;
+
+    if (showMap && typeof L !== 'undefined') {
+      const isNight = document.documentElement.classList.contains('night');
+      const tileUrl = isNight
+        ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+
+      const map = L.map('activityMap', { zoomControl: false, attributionControl: false });
+      L.tileLayer(tileUrl, { maxZoom: 18 }).addTo(map);
+      activityMapInstance = map;
+
+      if (polylineStr) {
+        const coords = decodePolyline(polylineStr);
+        if (coords.length > 0) {
+          const line = L.polyline(coords, { color: '#e05a00', weight: 3, opacity: 0.85 }).addTo(map);
+          // Start dot
+          L.circleMarker(coords[0], { radius: 5, color: '#e05a00', fillColor: '#fff', fillOpacity: 1, weight: 2 }).addTo(map);
+          // End dot
+          L.circleMarker(coords[coords.length - 1], { radius: 5, color: '#e05a00', fillColor: '#e05a00', fillOpacity: 1, weight: 2 }).addTo(map);
+          map.fitBounds(line.getBounds(), { padding: [12, 12] });
+        }
+      } else if (pinLatLon) {
+        map.setView(pinLatLon, 13);
+        L.circleMarker(pinLatLon, { radius: 8, color: '#e05a00', fillColor: '#e05a00', fillOpacity: 0.8, weight: 2 }).addTo(map);
+      }
+    }
+  } catch(e) {
+    console.error('activity load error', e);
+  }
+}
+
 /* Full page reload every 30 min to reclaim Chromium memory */
 setTimeout(()=> location.reload(), 30 * 60 * 1000);
 
 /* cadence */
 async function refresh(){
-  await Promise.all([loadTrains(), loadBuses()]);
+  await loadLayout();
+  await Promise.all([loadTrains(), loadBuses(), loadMetra(), loadCommute()]);
+  await loadBikeWeather();
+  loadLatestActivity();
   setStamp();
 }
 refresh();
 setInterval(refresh, 20000);
+setInterval(loadLayout, 2000);
 
 loadWeather();
 setInterval(loadWeather, 300000);
+
 
 setStamp();
 setInterval(setStamp, 60000);
@@ -699,14 +1349,126 @@ async function pullupAction(person,action){
 document.addEventListener('keydown',(e)=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
   const k=e.key.toUpperCase();
-  if(k==='C') pullupAction('colin','inc');
-  else if(k==='X') pullupAction('colin','dec');
-  else if(k==='L') pullupAction('lucas','inc');
-  else if(k==='K') pullupAction('lucas','dec');
+  if(k==='D') pullupAction('colin','inc');
+  else if(k==='S') pullupAction('colin','dec');
+  else if(k==='O') pullupAction('lucas','inc');
+  else if(k==='I') pullupAction('lucas','dec');
+  else if(k==='C') pushupAction('colin','inc');
+  else if(k==='X') pushupAction('colin','dec');
+  else if(k==='L') pushupAction('lucas','inc');
+  else if(k==='K') pushupAction('lucas','dec');
 });
 
 loadPullups();
 setInterval(loadPullups, 60000);
+
+/* ===== Push-up Counter ===== */
+async function loadPushups(){
+  try{
+    const j=await(await fetch('/api/pushups',{cache:'no-store'})).json();
+    document.getElementById('pushupColin').textContent=j.colin||0;
+    document.getElementById('pushupLucas').textContent=j.lucas||0;
+  }catch(e){ console.error('pushup load error',e); }
+}
+
+async function pushupAction(person,action){
+  try{
+    const j=await(await fetch(`/api/pushups/${person}/${action}`,{method:'POST'})).json();
+    const el=document.getElementById(person==='colin'?'pushupColin':'pushupLucas');
+    el.textContent=j.count;
+    bumpAnim(el);
+  }catch(e){ console.error('pushup action error',e); }
+}
+
+loadPushups();
+setInterval(loadPushups, 60000);
+
+/* ===== Push-up Stats Cycling ===== */
+let pushupStatsData = null;
+let pushupStatIndex = 0;
+
+async function loadPushupStats(){
+  try{
+    const j = await(await fetch('/api/pushups/stats',{cache:'no-store'})).json();
+    pushupStatsData = j;
+  }catch(e){ console.error('pushup stats error',e); }
+}
+
+function renderCurrentPushupStat(){
+  if(!pushupStatsData) return;
+  const statsEl = document.getElementById('pushupStats');
+  const labelEl = document.getElementById('pushupStatLabel');
+  const valuesEl = document.getElementById('pushupStatValues');
+
+  statsEl.style.opacity = '0';
+  setTimeout(()=>{
+    const def = STAT_DEFS[pushupStatIndex % STAT_DEFS.length];
+    const data = pushupStatsData[def.key];
+    labelEl.textContent = def.icon + ' ' + def.label;
+
+    const suffix = def.key === 'streak' ? 'd' : '';
+    valuesEl.innerHTML =
+      '<span class="stat-person">Colin: <strong>' + (data.colin||0) + suffix + '</strong></span>' +
+      '<span class="stat-dot">\u00B7</span>' +
+      '<span class="stat-person">Lucas: <strong>' + (data.lucas||0) + suffix + '</strong></span>';
+
+    statsEl.style.opacity = '1';
+    pushupStatIndex = (pushupStatIndex + 1) % STAT_DEFS.length;
+  }, 300);
+}
+
+loadPushupStats();
+setInterval(loadPushupStats, 60000);
+renderCurrentPushupStat();
+setTimeout(()=> renderCurrentPushupStat(), 1000);
+setInterval(renderCurrentPushupStat, 5000);
+
+/* ===== Pull-up Stats Cycling ===== */
+const STAT_DEFS = [
+  { key:'dailyRecord', label:'Daily Record',  icon:'\u{1F3C6}' },
+  { key:'weekTotal',   label:'This Week',     icon:'\u{1F4C5}' },
+  { key:'monthTotal',  label:'This Month',    icon:'\u{1F4C6}' },
+  { key:'streak',      label:'Streak',        icon:'\u{1F525}' },
+  { key:'allTime',     label:'All-Time Total', icon:'\u{1F3AF}' },
+];
+let pullupStatsData = null;
+let statIndex = 0;
+
+async function loadPullupStats(){
+  try{
+    const j = await(await fetch('/api/pullups/stats',{cache:'no-store'})).json();
+    pullupStatsData = j;
+  }catch(e){ console.error('pullup stats error',e); }
+}
+
+function renderCurrentStat(){
+  if(!pullupStatsData) return;
+  const statsEl = document.getElementById('pullupStats');
+  const labelEl = document.getElementById('pullupStatLabel');
+  const valuesEl = document.getElementById('pullupStatValues');
+
+  statsEl.style.opacity = '0';
+  setTimeout(()=>{
+    const def = STAT_DEFS[statIndex % STAT_DEFS.length];
+    const data = pullupStatsData[def.key];
+    labelEl.textContent = def.icon + ' ' + def.label;
+
+    const suffix = def.key === 'streak' ? 'd' : '';
+    valuesEl.innerHTML =
+      '<span class="stat-person">Colin: <strong>' + (data.colin||0) + suffix + '</strong></span>' +
+      '<span class="stat-dot">\u00B7</span>' +
+      '<span class="stat-person">Lucas: <strong>' + (data.lucas||0) + suffix + '</strong></span>';
+
+    statsEl.style.opacity = '1';
+    statIndex = (statIndex + 1) % STAT_DEFS.length;
+  }, 300);
+}
+
+loadPullupStats();
+setInterval(loadPullupStats, 60000);
+renderCurrentStat();
+setTimeout(()=> renderCurrentStat(), 1000);
+setInterval(renderCurrentStat, 5000);
 </script>
 
 </body>

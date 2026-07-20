@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Control</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f17;
+      color: #e0dff5;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #fff;
+    }
+
+    .status {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #1e1e2e;
+      color: #aaa;
+    }
+    .status.ok  { background: #1a3322; color: #4caf50; }
+    .status.err { background: #3a1a1a; color: #f44336; }
+
+    .card {
+      background: #1a1a2e;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #7b7a99;
+      margin-bottom: 14px;
+    }
+
+    .module-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #25253a;
+    }
+    .module-row:last-child { border-bottom: none; }
+    .module-row.disabled { opacity: 0.38; pointer-events: none; }
+
+    .module-label {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle .slider {
+      position: absolute;
+      inset: 0;
+      background: #333355;
+      border-radius: 26px;
+      transition: background 0.25s;
+      cursor: pointer;
+    }
+    .toggle .slider::before {
+      content: '';
+      position: absolute;
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.25s;
+    }
+    .toggle input:checked + .slider { background: #4c6ef5; }
+    .toggle input:checked + .slider::before { transform: translateX(20px); }
+    .toggle input:disabled + .slider { cursor: not-allowed; }
+
+    /* Auto badge */
+    .auto-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: #2a2a44;
+      color: #9a99cc;
+      border-radius: 6px;
+      padding: 3px 7px;
+      margin-left: 8px;
+    }
+
+    .module-row .left {
+      display: flex;
+      align-items: center;
+    }
+
+    a.back {
+      display: inline-block;
+      margin-top: 20px;
+      font-size: 0.85rem;
+      color: #7b7a99;
+      text-decoration: none;
+    }
+    a.back:hover { color: #e0dff5; }
+
+    .num-input {
+      background: #25253a;
+      color: #e0dff5;
+      border: 1px solid #3a3a55;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      width: 64px;
+      text-align: center;
+    }
+    .num-input:focus { outline: none; border-color: #4c6ef5; }
+
+    .seg {
+      display: flex;
+      gap: 4px;
+    }
+    .seg-btn {
+      background: #25253a;
+      color: #9a99cc;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .seg-btn.active {
+      background: #4c6ef5;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>Dashboard Control</h1>
+  <div class="status" id="status">Loading…</div>
+</header>
+
+<div class="card">
+  <div class="card-title">Theme</div>
+  <div class="module-row">
+    <span class="module-label">Mode</span>
+    <div class="seg" id="themeSeg">
+      <button class="seg-btn" data-val="day">Day</button>
+      <button class="seg-btn" data-val="auto">Auto</button>
+      <button class="seg-btn" data-val="night">Night</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Kimball / Metra UP-NW Outbound</div>
+
+  <div class="module-row">
+    <div class="left">
+      <span class="module-label">Auto Mode</span>
+      <span class="auto-badge">weekday 5–10am</span>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="autoKimballMetra" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row" id="row-trainKimball">
+    <span class="module-label">Brown Line → Kimball</span>
+    <label class="toggle">
+      <input type="checkbox" id="trainKimball" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row" id="row-metraClybourn">
+    <span class="module-label">Metra UP-NW Outbound</span>
+    <label class="toggle">
+      <input type="checkbox" id="metraClybourn" />
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Transit</div>
+
+  <div class="module-row">
+    <span class="module-label">Brown Line → Loop</span>
+    <label class="toggle">
+      <input type="checkbox" id="trainLoop" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">#77 Eastbound</span>
+    <label class="toggle">
+      <input type="checkbox" id="busEast" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">#77 Westbound</span>
+    <label class="toggle">
+      <input type="checkbox" id="busWest" />
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Info</div>
+
+  <div class="module-row">
+    <span class="module-label">Now Playing</span>
+    <label class="toggle">
+      <input type="checkbox" id="nowPlaying" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Weather</span>
+    <label class="toggle">
+      <input type="checkbox" id="weather" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Sports</span>
+    <label class="toggle">
+      <input type="checkbox" id="sports" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Latest Activity</span>
+    <label class="toggle">
+      <input type="checkbox" id="latestActivity" />
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Fitness</div>
+
+  <div class="module-row">
+    <span class="module-label">Pull-Ups</span>
+    <label class="toggle">
+      <input type="checkbox" id="pullups" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Push-Ups</span>
+    <label class="toggle">
+      <input type="checkbox" id="pushups" />
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Commute — Schedule</div>
+
+  <div class="module-row">
+    <div class="left">
+      <span class="module-label">Auto Mode</span>
+      <span class="auto-badge">weekday 5–10am</span>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="autoCommute" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row" id="row-commute">
+    <span class="module-label">Show Commute Card</span>
+    <label class="toggle">
+      <input type="checkbox" id="commute" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Work Window (hours)</span>
+    <input type="number" class="num-input" id="workWindow" min="6" max="12" step="0.5" value="9" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Latest arrival at office</span>
+    <input type="time" class="num-input" id="latestArrival" value="09:00" style="width:80px" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Office closes (earliest departure)</span>
+    <input type="time" class="num-input" id="officeClose" value="16:00" style="width:80px" />
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Commute — Drive</div>
+
+  <div class="module-row">
+    <span class="module-label">Car MPG</span>
+    <input type="number" class="num-input" id="mpg" min="1" max="150" value="28" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Gas Price ($/gal)</span>
+    <input type="number" class="num-input" id="gasPrice" min="0.01" max="20" step="0.01" value="3.50" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Tolls, round trip ($)</span>
+    <input type="number" class="num-input" id="tollCost" min="0" max="50" step="0.25" value="4.00" />
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Commute — CTA (Blue Line + Pace 600)</div>
+
+  <div class="module-row">
+    <span class="module-label">Home → Belmont Blue Line (min)</span>
+    <input type="number" class="num-input" id="bikeToBlue" min="1" max="60" value="10" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">NW Trans Center → Office (min)</span>
+    <input type="number" class="num-input" id="bikeFromPace" min="1" max="60" value="10" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Ticket Mode</span>
+    <div class="seg" id="ctaTicketSeg">
+      <button class="seg-btn" data-val="roundtrip">2× One-way</button>
+      <button class="seg-btn" data-val="daypass">Day Pass</button>
+    </div>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">One-way Fare ($)</span>
+    <input type="number" class="num-input" id="ctaFare" min="0.01" max="50" step="0.25" value="2.50" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Day Pass ($)</span>
+    <input type="number" class="num-input" id="ctaDayPass" min="0.01" max="50" step="0.25" value="5.00" />
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Commute — Metra (UP-NW)</div>
+
+  <div class="module-row">
+    <span class="module-label">Home → Clybourn (min)</span>
+    <input type="number" class="num-input" id="bikeToMetra" min="1" max="60" value="10" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Arlington Hts → Office (min)</span>
+    <input type="number" class="num-input" id="bikeFromMetra" min="1" max="60" value="16" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Ticket Mode</span>
+    <div class="seg" id="metraTicketSeg">
+      <button class="seg-btn" data-val="roundtrip">2× One-way</button>
+      <button class="seg-btn" data-val="daypass">Day Pass</button>
+    </div>
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">One-way Fare ($)</span>
+    <input type="number" class="num-input" id="metraFare" min="0.01" max="50" step="0.25" value="5.50" />
+  </div>
+
+  <div class="module-row">
+    <span class="module-label">Day Pass ($)</span>
+    <input type="number" class="num-input" id="metraDayPass" min="0.01" max="50" step="0.25" value="10.00" />
+  </div>
+</div>
+
+<a class="back" href="/">← Back to dashboard</a>
+<a class="back" href="/analytics" style="margin-left: 20px;">Analytics →</a>
+
+<script>
+const ALL_KEYS = [
+  'autoKimballMetra',
+  'trainLoop', 'trainKimball', 'metraClybourn',
+  'busEast', 'busWest',
+  'nowPlaying', 'weather', 'sports', 'latestActivity',
+  'pullups', 'pushups',
+  'autoCommute', 'commute',
+];
+
+const statusEl = document.getElementById('status');
+
+function setStatus(text, cls) {
+  statusEl.textContent = text;
+  statusEl.className = 'status ' + (cls || '');
+}
+
+async function fetchLayout() {
+  const r = await fetch('/api/layout', { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+async function postLayout(patch) {
+  const r = await fetch('/api/layout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+function applyToUI(cfg) {
+  ALL_KEYS.forEach(key => {
+    const el = document.getElementById(key);
+    if (el) el.checked = cfg[key] !== false;
+  });
+  ['bikeToMetra', 'bikeFromMetra', 'mpg', 'gasPrice', 'tollCost',
+   'bikeToBlue', 'bikeFromPace', 'ctaFare', 'ctaDayPass',
+   'metraFare', 'metraDayPass', 'workWindow', 'latestArrival', 'officeClose'].forEach(key => {
+    const el = document.getElementById(key);
+    if (el && cfg[key] != null) el.value = cfg[key];
+  });
+  document.querySelectorAll('#metraTicketSeg .seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === (cfg.metraTicketMode || 'roundtrip'));
+  });
+  document.querySelectorAll('#ctaTicketSeg .seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === (cfg.ctaTicketMode || 'roundtrip'));
+  });
+  document.querySelectorAll('#themeSeg .seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === (cfg.theme || 'auto'));
+  });
+  updateAutoMode(cfg.autoKimballMetra !== false);
+  updateAutoCommute(cfg.autoCommute !== false);
+}
+
+function updateAutoMode(isAuto) {
+  ['trainKimball', 'metraClybourn'].forEach(key => {
+    const row = document.getElementById('row-' + key);
+    const input = document.getElementById(key);
+    if (row)   row.classList.toggle('disabled', isAuto);
+    if (input) input.disabled = isAuto;
+  });
+}
+
+function updateAutoCommute(isAuto) {
+  const row   = document.getElementById('row-commute');
+  const input = document.getElementById('commute');
+  if (row)   row.classList.toggle('disabled', isAuto);
+  if (input) input.disabled = isAuto;
+}
+
+async function load() {
+  try {
+    const cfg = await fetchLayout();
+    applyToUI(cfg);
+    setStatus('Connected', 'ok');
+  } catch (e) {
+    setStatus('Error', 'err');
+    console.error(e);
+  }
+}
+
+async function onChange(key, value) {
+  setStatus('Saving…');
+  try {
+    const cfg = await postLayout({ [key]: value });
+    applyToUI(cfg);
+    setStatus('Saved', 'ok');
+    setTimeout(() => setStatus('Connected', 'ok'), 1200);
+  } catch (e) {
+    setStatus('Error', 'err');
+    console.error(e);
+  }
+}
+
+ALL_KEYS.forEach(key => {
+  const el = document.getElementById(key);
+  if (!el) return;
+  el.addEventListener('change', () => {
+    if (key === 'autoKimballMetra') updateAutoMode(el.checked);
+    if (key === 'autoCommute') updateAutoCommute(el.checked);
+    onChange(key, el.checked);
+  });
+});
+
+document.querySelectorAll('#themeSeg .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#themeSeg .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    onChange('theme', btn.dataset.val);
+  });
+});
+
+['bikeToMetra', 'bikeFromMetra', 'mpg', 'gasPrice', 'tollCost',
+ 'bikeToBlue', 'bikeFromPace', 'ctaFare', 'ctaDayPass',
+ 'metraFare', 'metraDayPass', 'workWindow'].forEach(key => {
+  const el = document.getElementById(key);
+  if (!el) return;
+  el.addEventListener('change', () => onChange(key, Number(el.value)));
+});
+
+['latestArrival', 'officeClose'].forEach(key => {
+  const el = document.getElementById(key);
+  if (!el) return;
+  el.addEventListener('change', () => onChange(key, el.value));
+});
+
+document.querySelectorAll('#ctaTicketSeg .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#ctaTicketSeg .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    onChange('ctaTicketMode', btn.dataset.val);
+  });
+});
+
+document.querySelectorAll('#metraTicketSeg .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#metraTicketSeg .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    onChange('metraTicketMode', btn.dataset.val);
+  });
+});
+
+load();
+// Re-sync every 10s in case another device made changes
+setInterval(load, 10000);
+</script>
+
+</body>
+</html>

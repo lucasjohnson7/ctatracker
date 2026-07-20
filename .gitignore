@@ -1,0 +1,11 @@
+node_modules/
+__pycache__/
+.DS_Store
+.env
+
+# Runtime state written by poller.py / the counter APIs — never commit;
+# the Pi's live copies must survive git deploys.
+data/
+
+# Per-machine Claude Code settings
+.claude/

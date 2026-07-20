@@ -78,7 +78,18 @@ export default async function handler() {
       });
     }
 
-    const group = groups[0];
+    // Find the group that's actively playing, fall back to first group
+    let group = groups[0];
+    let status = {};
+    for (const g of groups) {
+      const s = await api(`/groups/${g.id}/playback`, access_token).catch(() => ({}));
+      if (s?.playbackState === 'PLAYBACK_STATE_PLAYING') {
+        group = g;
+        status = s;
+        break;
+      }
+      if (g === groups[0]) status = s; // keep first group's status as fallback
+    }
 
     // metadata (group first, then player fallback)
     let meta = null;
@@ -90,9 +101,6 @@ export default async function handler() {
         meta = await api(`/players/${playerId}/playback/metadata`, access_token);
       }
     }
-
-    // playback status (for play state + position/duration if available)
-    const status = await api(`/groups/${group.id}/playback`, access_token).catch(() => ({}));
 
     const title = meta?.currentItem?.track?.name || meta?.container?.name || null;
     const artist = meta?.currentItem?.track?.artist?.name || null;
