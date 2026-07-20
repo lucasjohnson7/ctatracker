@@ -8,7 +8,7 @@
 # touch it.
 set -e
 
-PI=colinrecker@192.168.12.191
+PI=colinrecker@100.126.101.86
 
 git push origin main
 git push homeserver main
