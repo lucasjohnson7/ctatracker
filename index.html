@@ -311,7 +311,9 @@ async function loadLayout() {
     layoutState = { ...LAYOUT_DEFAULTS };
   }
   try {
-    presenceState = await fetchJSON('/api/presence');
+    // Presence now lives on the home server, not this Pi — see home-server-status/presence/.
+    // Must use the Tailscale IP: the Pi's firewall drops LAN traffic from the home server.
+    presenceState = await fetchJSON('http://100.98.221.29/api/presence');
   } catch {
     presenceState = { home: false };
   }

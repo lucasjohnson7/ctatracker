@@ -7,7 +7,6 @@ import { fileURLToPath, pathToFileURL } from "url";
 import { handleGet as pullupGet, handleInc as pullupInc, handleDec as pullupDec, handleStats as pullupStats } from "./api/pullups.js";
 import { handleGet as pushupGet, handleInc as pushupInc, handleDec as pushupDec, handleStats as pushupStats } from "./api/pushups.js";
 import { handleGet as layoutGet, handlePost as layoutPost } from "./api/layout.js";
-import { handleGet as presenceGet, handlePost as presencePost } from "./api/presence.js";
 import { handleGet as analyticsGet } from "./api/analytics.js";
 
 const app = express();
@@ -133,10 +132,6 @@ app.get("/api/analytics", analyticsGet);
 // Layout
 app.get("/api/layout", layoutGet);
 app.post("/api/layout", layoutPost);
-
-// Presence
-app.get("/api/presence", presenceGet);
-app.post("/api/presence", presencePost);
 
 // Push-ups
 app.get("/api/pushups", pushupGet);
