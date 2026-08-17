@@ -41,6 +41,21 @@ FITNESS_TOKEN = os.environ.get("FITNESS_TOKEN", "")
 PI_BASE_URL  = os.environ.get("PI_BASE_URL", "http://localhost:3000")
 INGEST_TOKEN = os.environ.get("INGEST_TOKEN", "")
 
+# Push notifications for Metra delays. NTFY_* come from the home server's
+# ntfy container; the token belongs to a `poller` user with write-only access
+# to this one topic, not to the admin user. PRESENCE_URL is the home server's
+# presence receiver — delays are only worth pushing for the direction being
+# travelled next, so alerts are gated on where the phone says it is.
+NTFY_URL     = os.environ.get("NTFY_URL", "")
+NTFY_TOPIC   = os.environ.get("NTFY_TOPIC", "")
+NTFY_TOKEN   = os.environ.get("NTFY_TOKEN", "")
+PRESENCE_URL = os.environ.get("PRESENCE_URL", "http://100.98.221.29/api/presence")
+
+DELAY_THRESHOLD_MIN = 5   # "late" starts here
+DELAY_LOOKAHEAD_MIN = 90  # ignore trains further out than this
+DELAY_REALERT_MIN   = 5   # re-alert a train only if it slips this much further
+DELAY_STATE_FILE    = os.path.join(DATA_DIR, "delay_alerts.json")
+
 COMMUTE_ORIGIN      = "1454 W School St, Chicago IL 60657"
 COMMUTE_DESTINATION = "2000 Progress Pkwy, Schaumburg IL"
 COMMUTE_RETURN_ORIGIN      = "2000 Progress Pkwy, Schaumburg IL"
@@ -66,6 +81,7 @@ COMMUTE_INTERVAL  = 300  # seconds (5 min — ~1,050 Routes API calls/month at 5
                           # tier, whose free monthly allowance is ~5,000 calls, not the
                           # Essentials tier's ~10,000 — keep well under that with margin.)
 ACTIVITY_INTERVAL = 300  # seconds (5 min — Supabase latest activity)
+DELAY_INTERVAL    = 300  # seconds (5 min — Metra delay push notifications)
 
 
 def now_iso():
@@ -511,6 +527,173 @@ def fetch_metra_clybourn():
 
 
 # ===== Commute =====
+
+def ntfy_publish(message, title=None, tags=None, priority=None):
+    """Publish to the ntfy topic. Returns True on success. Never raises — a
+    failed notification must not take the poll loop down."""
+    if not (NTFY_URL and NTFY_TOPIC):
+        return False
+    headers = {"Content-Type": "text/plain; charset=utf-8"}
+    if NTFY_TOKEN:
+        headers["Authorization"] = f"Bearer {NTFY_TOKEN}"
+    if title:
+        headers["Title"] = title
+    if tags:
+        headers["Tags"] = tags
+    if priority:
+        headers["Priority"] = str(priority)
+    try:
+        req = Request(
+            f"{NTFY_URL.rstrip('/')}/{NTFY_TOPIC}",
+            data=message.encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+        ctx = ssl.create_default_context() if VERIFY_SSL else ssl._create_unverified_context()
+        with urlopen(req, timeout=10, context=ctx) as resp:
+            return 200 <= resp.status < 300
+    except Exception as e:
+        print(f"ntfy publish error: {e}")
+        return False
+
+
+def fetch_presence_location():
+    """'home' | 'work' | 'away' | 'unknown'. Falls back to 'unknown' so a
+    presence outage silences alerts rather than firing the wrong direction."""
+    try:
+        data = http_get_json(PRESENCE_URL, timeout=6)
+    except Exception:
+        return "unknown"
+    location = data.get("location")
+    if location:
+        return location
+    return "home" if data.get("home") else "away"  # pre-location payload
+
+
+def _metra_realtime_deps(station, want_inbound):
+    """trip_id -> {"dep_time": unix|None, "canceled": bool} for UP-NW trains
+    calling at `station`, in one direction. Direction is inferred the same way
+    fetch_metra_clybourn() does it: OTC appearing after the station means the
+    train is heading into the city."""
+    from google.transit import gtfs_realtime_pb2
+
+    url = f"https://gtfspublic.metrarr.com/gtfs/public/tripupdates?api_token={METRA_KEY}"
+    req = Request(url, headers={"User-Agent": "ctatracker-local/1.0"})
+    ctx = ssl.create_default_context() if VERIFY_SSL else ssl._create_unverified_context()
+    with urlopen(req, timeout=12, context=ctx) as resp:
+        raw = resp.read()
+
+    feed = gtfs_realtime_pb2.FeedMessage()
+    feed.ParseFromString(raw)
+
+    out = {}
+    for entity in feed.entity:
+        tu = entity.trip_update
+        if tu.trip.route_id != "UP-NW":
+            continue
+        tid = tu.trip.trip_id
+        if tu.trip.schedule_relationship == 3:
+            out[tid] = {"dep_time": None, "canceled": True}
+            continue
+        stop_ids = [s.stop_id for s in tu.stop_time_update]
+        if station not in stop_ids:
+            continue
+        idx = stop_ids.index(station)
+        if ("OTC" in stop_ids[idx + 1:]) != want_inbound:
+            continue
+        st = tu.stop_time_update[idx]
+        out[tid] = {"dep_time": st.departure.time or st.arrival.time, "canceled": False}
+    return out
+
+
+def _load_delay_state():
+    """{"date": "YYYYMMDD", "alerted": {trip_id: minutes_late|"canceled"}}.
+    Keyed by date so it self-cleans at midnight instead of growing forever."""
+    today = datetime.datetime.now().strftime("%Y%m%d")
+    try:
+        with open(DELAY_STATE_FILE) as f:
+            state = json.load(f)
+        if state.get("date") == today:
+            return state
+    except (FileNotFoundError, ValueError, json.JSONDecodeError):
+        pass
+    return {"date": today, "alerted": {}}
+
+
+def check_metra_delays():
+    """Push a notification when an upcoming UP-NW train in the direction we're
+    about to travel is more than DELAY_THRESHOLD_MIN late, or cancelled."""
+    if not (METRA_KEY and NTFY_TOPIC):
+        return
+
+    location = fetch_presence_location()
+    if location == "home":
+        # Next trip is outbound: Clybourn -> Arlington Heights.
+        scheduled, station, inbound, heading = (
+            get_scheduled_clybourn_deps(), "CLYBOURN", False, "from Clybourn")
+    elif location == "work":
+        # Next trip is inbound: Arlington Heights -> Clybourn.
+        scheduled, station, inbound, heading = (
+            get_scheduled_arlington_deps(), "ARLINGTNHT", True, "from Arlington Heights")
+    else:
+        return  # commuting or unknown — nothing actionable to say
+
+    if not scheduled:
+        return
+
+    realtime = _metra_realtime_deps(station, inbound)
+    now_ts   = time.time()
+    midnight = datetime.datetime.now().replace(
+        hour=0, minute=0, second=0, microsecond=0).timestamp()
+
+    state   = _load_delay_state()
+    alerted = state["alerted"]
+    lines   = []
+
+    for tid, info in scheduled.items():
+        sched_unix = midnight + info["dep_secs"]
+        # Only trains that haven't left yet and are within the lookahead.
+        if not (now_ts - 60 <= sched_unix <= now_ts + DELAY_LOOKAHEAD_MIN * 60):
+            continue
+        rt = realtime.get(tid)
+        if not rt:
+            continue
+
+        sched_hm = datetime.datetime.fromtimestamp(sched_unix).strftime("%-I:%M")
+
+        if rt["canceled"]:
+            if alerted.get(tid) != "canceled":
+                lines.append(f"{sched_hm} {heading} is CANCELLED")
+                alerted[tid] = "canceled"
+            continue
+
+        if not rt["dep_time"]:
+            continue
+        late_min = round((rt["dep_time"] - sched_unix) / 60)
+        if late_min < DELAY_THRESHOLD_MIN:
+            continue
+
+        prev = alerted.get(tid)
+        # Re-alert only if it has slipped meaningfully further since last time.
+        if isinstance(prev, int) and late_min < prev + DELAY_REALERT_MIN:
+            continue
+
+        new_hm = datetime.datetime.fromtimestamp(rt["dep_time"]).strftime("%-I:%M")
+        lines.append(f"{sched_hm} {heading} is {late_min} min late (now {new_hm})")
+        alerted[tid] = late_min
+
+    if not lines:
+        return
+
+    if ntfy_publish(
+        "\n".join(lines),
+        title="Metra delay" if len(lines) == 1 else f"Metra delays ({len(lines)})",
+        tags="train",
+    ):
+        state["alerted"] = alerted
+        write_json_atomic(DELAY_STATE_FILE, state)
+        print(f"[delays] notified: {' | '.join(lines)}")
+
 
 def fetch_commute():
     if not GOOGLE_API_KEY:
@@ -1041,6 +1224,7 @@ def main():
     last_sports   = 0
     last_commute  = 0
     last_activity = 0
+    last_delays   = 0
 
     print("Poller started:", now_iso())
 
@@ -1068,6 +1252,13 @@ def main():
                 except Exception as e:
                     print(f"Commute poll error: {e}")
             last_commute = now
+
+        if now - last_delays >= DELAY_INTERVAL:
+            try:
+                check_metra_delays()
+            except Exception as e:
+                print(f"Delay check error: {e}")
+            last_delays = now
 
         if now - last_activity >= ACTIVITY_INTERVAL:
             layout = read_layout()
