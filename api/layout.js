@@ -22,7 +22,7 @@ const DEFAULTS = {
   pushups: true,
   commute: true,
   autoCommute: true,
-  bikeToMetra: 10,
+  bikeToMetra: 18,
   bikeFromMetra: 16,
   mpg: 28,
   gasPrice: 3.50,

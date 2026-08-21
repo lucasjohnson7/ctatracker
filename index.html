@@ -273,7 +273,7 @@ const LAYOUT_DEFAULTS = {
   trainLoop: true, trainKimball: true, metraClybourn: false,
   busEast: true, busWest: true,
   nowPlaying: true, weather: true, sports: true, latestActivity: true, commute: true, autoCommute: true,
-  bikeToMetra: 10, bikeFromMetra: 16, mpg: 28, gasPrice: 3.50, tollCost: 0,
+  bikeToMetra: 18, bikeFromMetra: 16, mpg: 28, gasPrice: 3.50, tollCost: 0,
   metraFare: 5.50, metraDayPass: 10.00, metraTicketMode: 'roundtrip',
   pullups: true, pushups: true,
 };
@@ -921,7 +921,7 @@ async function loadCommute() {
 
     const fmt = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const now = new Date();
-    const bikeToMetra   = layoutState.bikeToMetra   ?? 10;
+    const bikeToMetra   = layoutState.bikeToMetra   ?? 18;
     const bikeFromMetra = layoutState.bikeFromMetra ?? 16;
     const mpg              = layoutState.mpg              ?? 28;
     const gasPrice         = layoutState.gasPrice         ?? 3.50;
