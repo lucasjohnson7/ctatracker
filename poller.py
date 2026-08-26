@@ -391,7 +391,13 @@ def load_metra_static_schedule(force=False):
             "service_exceptions": service_exceptions,
             "updatedAt": now_iso(),
         }
-        write_json_atomic(METRA_SCHEDULE_CACHE, result)
+        # Local-only cache: the Pi never reads this, and pushing it over the
+        # ingest endpoint trips Express's 100kb JSON body limit now that it
+        # covers two outbound stations (~130kb).
+        tmp = METRA_SCHEDULE_CACHE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(result, f)
+        os.replace(tmp, METRA_SCHEDULE_CACHE)
         print(f"Metra schedule: {len(clybourn_deps)} outbound Clybourn, {len(irvingpk_deps)} outbound Irving Park, {len(arlington_deps)} inbound Arlington trips cached.")
 
         _metra_schedule = result
