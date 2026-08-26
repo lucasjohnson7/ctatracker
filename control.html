@@ -212,6 +212,14 @@
       <span class="slider"></span>
     </label>
   </div>
+
+  <div class="module-row">
+    <span class="module-label">Outbound Station</span>
+    <div class="seg" id="metraStationSeg">
+      <button class="seg-btn" data-val="CLYBOURN">Clybourn</button>
+      <button class="seg-btn" data-val="IRVINGPK">Irving Park</button>
+    </div>
+  </div>
 </div>
 
 <div class="card">
@@ -436,6 +444,9 @@ function applyToUI(cfg) {
   document.querySelectorAll('#metraTicketSeg .seg-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.val === (cfg.metraTicketMode || 'roundtrip'));
   });
+  document.querySelectorAll('#metraStationSeg .seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === (cfg.metraStation || 'IRVINGPK'));
+  });
   document.querySelectorAll('#themeSeg .seg-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.val === (cfg.theme || 'auto'));
   });
@@ -519,6 +530,14 @@ document.querySelectorAll('#metraTicketSeg .seg-btn').forEach(btn => {
     document.querySelectorAll('#metraTicketSeg .seg-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     onChange('metraTicketMode', btn.dataset.val);
+  });
+});
+
+document.querySelectorAll('#metraStationSeg .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#metraStationSeg .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    onChange('metraStation', btn.dataset.val);
   });
 });
 

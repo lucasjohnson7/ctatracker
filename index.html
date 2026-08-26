@@ -270,7 +270,7 @@ const MODULES = [
 const LAYOUT_DEFAULTS = {
   theme: 'auto',
   autoKimballMetra: true,
-  trainLoop: true, trainKimball: true, metraClybourn: false,
+  trainLoop: true, trainKimball: true, metraClybourn: false, metraStation: 'IRVINGPK',
   busEast: true, busWest: true,
   nowPlaying: true, weather: true, sports: true, latestActivity: true, commute: true, autoCommute: true,
   bikeToMetra: 18, bikeFromMetra: 16, mpg: 28, gasPrice: 3.50, tollCost: 0,
@@ -649,9 +649,15 @@ function renderMetra(rows, target, runner){
   controlRunner(document.querySelector(runner), anyDue);
 }
 
+const METRA_STATION_LABELS = { CLYBOURN: 'Clybourn', IRVINGPK: 'Irving Park' };
+const METRA_STATION_FILES  = { CLYBOURN: 'metra_clybourn.json', IRVINGPK: 'metra_irvingpk.json' };
+
 async function loadMetra(){
+  const station = METRA_STATION_FILES[layoutState.metraStation] ? layoutState.metraStation : 'IRVINGPK';
+  const label = document.querySelector('#metraClybournMarquee .station-label');
+  if (label) label.textContent = `Metra UP-NW → ${METRA_STATION_LABELS[station]}`;
   try {
-    const data = await fetchJSON("./data/metra_clybourn.json");
+    const data = await fetchJSON(`./data/${METRA_STATION_FILES[station]}`);
     renderMetra(data.rows || [], "#metraClybournBody", "#metraClybournRun");
   } catch(e) {
     console.error("metra load error", e);
@@ -916,7 +922,7 @@ async function loadCommute() {
   try {
     const [cd, md] = await Promise.all([
       fetch('./data/commute.json', { cache: 'no-store' }).then(r => r.json()),
-      fetch('./data/metra_clybourn.json', { cache: 'no-store' }).then(r => r.json()),
+      fetch('./data/metra_irvingpk.json', { cache: 'no-store' }).then(r => r.json()),
     ]);
 
     const fmt = d => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -1020,6 +1026,7 @@ async function loadCommute() {
 /* ===== Latest Activity ===== */
 let activityMapInstance = null;
 let lastActivityLogId = null;
+let activityCarouselIndex = 0;
 
 function decodePolyline(str) {
   const coords = [];
@@ -1068,23 +1075,31 @@ async function loadLatestActivity() {
     const card = document.getElementById('activityCard');
     if (!card) return;
 
-    const log = j.log;
-    if (!log) {
+    const activities = j.activities || [];
+    if (!activities.length) {
       if (activityMapInstance) { activityMapInstance.remove(); activityMapInstance = null; }
       card.innerHTML = '<div style="opacity:0.45;font-size:14px">No activity logged yet</div>';
       return;
     }
 
-    // Skip full re-render if same log (map stays intact)
-    if (log.id && log.id === lastActivityLogId) return;
-    lastActivityLogId = log.id || null;
+    // Alternate between household members' latest activity each refresh cycle.
+    const entry = activities[activityCarouselIndex % activities.length];
+    activityCarouselIndex++;
+    const who = entry.who || 'colin';
+    const log = entry.log;
+
+    // Skip full re-render if same person+log (map stays intact)
+    const dedupeKey = `${who}:${log.id || ''}`;
+    if (dedupeKey === lastActivityLogId) return;
+    lastActivityLogId = dedupeKey;
 
     // Destroy old map before wiping innerHTML
     if (activityMapInstance) { activityMapInstance.remove(); activityMapInstance = null; }
 
     const kind = log._kind;
     const data = log.data || {};
-    const loc  = j.location;
+    const loc  = entry.location;
+    const personLabel = who === 'lucas' ? 'Lucas' : 'Colin';
     const dt   = log.datetime ? new Date(log.datetime) : null;
     const dateStr = dt ? dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
     const relStr  = dt ? actRelativeTime(dt) : '';
@@ -1186,7 +1201,7 @@ async function loadLatestActivity() {
     card.innerHTML =
       `<div class="activity-header">
         <div class="activity-title">${title}</div>
-        <div class="activity-date">${dateStr}${relStr ? ` · ${relStr}` : ''}</div>
+        <div class="activity-date">${personLabel} · ${dateStr}${relStr ? ` · ${relStr}` : ''}</div>
       </div>
       ${statsHTML ? `<div class="activity-stats-grid">${statsHTML}</div>` : ''}
       ${notes ? `<div class="activity-notes">"${notes}"</div>` : ''}

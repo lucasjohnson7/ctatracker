@@ -254,8 +254,35 @@ def _parse_dep_secs(t_str):
         return None
 
 
+def _outbound_deps(trip_stops, upnw_trips, station):
+    """Outbound UP-NW trips (trip_id -> dep info) that call at `station`."""
+    deps = {}
+    for tid, stops in trip_stops.items():
+        stops.sort()
+        stop_ids = [s[1] for s in stops]
+        if station not in stop_ids:
+            continue
+        idx = stop_ids.index(station)
+        if "OTC" in stop_ids[idx + 1:]:
+            continue  # inbound
+        dep_secs = stops[idx][2]
+        terminal = METRA_STOP_NAMES.get(stop_ids[-1], stop_ids[-1])
+        # Arlington Heights arrival time (if this train stops there)
+        arlington_secs = None
+        if "ARLINGTNHT" in stop_ids:
+            aidx = stop_ids.index("ARLINGTNHT")
+            arlington_secs = stops[aidx][2]
+        deps[tid] = {
+            "service_id": upnw_trips[tid],
+            "dep_secs": dep_secs,
+            "terminal": terminal,
+            "arlington_secs": arlington_secs,
+        }
+    return deps
+
+
 def load_metra_static_schedule(force=False):
-    """Download GTFS zip and cache Clybourn outbound UP-NW departures."""
+    """Download GTFS zip and cache outbound UP-NW departures (Clybourn, Irving Park)."""
     global _metra_schedule, _metra_schedule_loaded_at
 
     # Use in-memory cache if fresh
@@ -311,29 +338,9 @@ def load_metra_static_schedule(force=False):
                 trip_stops[tid] = []
             trip_stops[tid].append((int(row.get("stop_sequence", 0)), row["stop_id"], secs))
 
-        # 3. Filter to outbound trips that stop at Clybourn
-        clybourn_deps = {}
-        for tid, stops in trip_stops.items():
-            stops.sort()
-            stop_ids = [s[1] for s in stops]
-            if "CLYBOURN" not in stop_ids:
-                continue
-            idx = stop_ids.index("CLYBOURN")
-            if "OTC" in stop_ids[idx + 1:]:
-                continue  # inbound
-            dep_secs = stops[idx][2]
-            terminal = METRA_STOP_NAMES.get(stop_ids[-1], stop_ids[-1])
-            # Arlington Heights arrival time (if this train stops there)
-            arlington_secs = None
-            if "ARLINGTNHT" in stop_ids:
-                aidx = stop_ids.index("ARLINGTNHT")
-                arlington_secs = stops[aidx][2]
-            clybourn_deps[tid] = {
-                "service_id": upnw_trips[tid],
-                "dep_secs": dep_secs,
-                "terminal": terminal,
-                "arlington_secs": arlington_secs,
-            }
+        # 3. Filter to outbound trips that stop at Clybourn / Irving Park
+        clybourn_deps = _outbound_deps(trip_stops, upnw_trips, "CLYBOURN")
+        irvingpk_deps = _outbound_deps(trip_stops, upnw_trips, "IRVINGPK")
 
         # 3b. Inbound trips departing Arlington Heights toward OTC
         arlington_deps = {}
@@ -378,13 +385,14 @@ def load_metra_static_schedule(force=False):
 
         result = {
             "clybourn_deps": clybourn_deps,
+            "irvingpk_deps": irvingpk_deps,
             "arlington_deps": arlington_deps,
             "service_days": service_days,
             "service_exceptions": service_exceptions,
             "updatedAt": now_iso(),
         }
         write_json_atomic(METRA_SCHEDULE_CACHE, result)
-        print(f"Metra schedule: {len(clybourn_deps)} outbound Clybourn, {len(arlington_deps)} inbound Arlington trips cached.")
+        print(f"Metra schedule: {len(clybourn_deps)} outbound Clybourn, {len(irvingpk_deps)} outbound Irving Park, {len(arlington_deps)} inbound Arlington trips cached.")
 
         _metra_schedule = result
         _metra_schedule_loaded_at = time.time()
@@ -418,6 +426,19 @@ def get_scheduled_clybourn_deps():
     return _filter_schedule_for_today(sched, "clybourn_deps") if sched else {}
 
 
+def get_scheduled_irvingpk_deps():
+    """Return today's outbound UP-NW trips departing Irving Park."""
+    sched = load_metra_static_schedule()
+    if not sched:
+        return {}
+    # Old cache won't have irvingpk_deps — force a refresh once
+    if "irvingpk_deps" not in sched:
+        sched = load_metra_static_schedule(force=True)
+        if not sched:
+            return {}
+    return _filter_schedule_for_today(sched, "irvingpk_deps")
+
+
 def get_scheduled_arlington_deps():
     """Return today's inbound UP-NW trips departing Arlington Heights toward OTC."""
     sched = load_metra_static_schedule()
@@ -431,52 +452,26 @@ def get_scheduled_arlington_deps():
     return _filter_schedule_for_today(sched, "arlington_deps")
 
 
-def fetch_metra_clybourn():
+_OUTBOUND_SCHEDULE_GETTERS = {
+    "CLYBOURN": get_scheduled_clybourn_deps,
+    "IRVINGPK": get_scheduled_irvingpk_deps,
+}
+
+
+def fetch_metra_outbound(station):
+    """Upcoming outbound UP-NW departures from `station` ("CLYBOURN" or
+    "IRVINGPK"), merging the static schedule with GTFS-realtime delays."""
     if not METRA_KEY:
         return {"rows": [], "error": "Missing METRA_KEY", "updatedAt": now_iso()}
 
     try:
-        from google.transit import gtfs_realtime_pb2
+        scheduled = _OUTBOUND_SCHEDULE_GETTERS[station]()  # trip_id -> {dep_secs, terminal}
 
-        # --- Static schedule: today's outbound Clybourn departures ---
-        scheduled = get_scheduled_clybourn_deps()  # trip_id -> {dep_secs, terminal}
-
-        now_dt  = datetime.datetime.now()
-        now_ts  = time.time()
+        now_dt   = datetime.datetime.now()
+        now_ts   = time.time()
         midnight = now_dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # --- Real-time feed: build delay map ---
-        url = f"https://gtfspublic.metrarr.com/gtfs/public/tripupdates?api_token={METRA_KEY}"
-        req = Request(url, headers={"User-Agent": "ctatracker-local/1.0"})
-        ctx = ssl.create_default_context() if VERIFY_SSL else ssl._create_unverified_context()
-        with urlopen(req, timeout=12, context=ctx) as resp:
-            raw = resp.read()
-
-        feed = gtfs_realtime_pb2.FeedMessage()
-        feed.ParseFromString(raw)
-
-        # trip_id -> {dep_time (unix), canceled}
-        realtime = {}
-        for entity in feed.entity:
-            tu = entity.trip_update
-            if tu.trip.route_id != "UP-NW":
-                continue
-            tid = tu.trip.trip_id
-            stop_ids = [s.stop_id for s in tu.stop_time_update]
-
-            # Canceled trip
-            if tu.trip.schedule_relationship == 3:
-                realtime[tid] = {"canceled": True}
-                continue
-
-            if "CLYBOURN" not in stop_ids:
-                continue
-            idx = stop_ids.index("CLYBOURN")
-            if "OTC" in stop_ids[idx + 1:]:
-                continue  # inbound
-            cly = tu.stop_time_update[idx]
-            dep_time = cly.departure.time or cly.arrival.time
-            realtime[tid] = {"dep_time": dep_time, "canceled": False}
+        realtime = _metra_realtime_deps(station, want_inbound=False)
 
         # --- Merge ---
         results = []
@@ -572,9 +567,8 @@ def fetch_presence_location():
 
 def _metra_realtime_deps(station, want_inbound):
     """trip_id -> {"dep_time": unix|None, "canceled": bool} for UP-NW trains
-    calling at `station`, in one direction. Direction is inferred the same way
-    fetch_metra_clybourn() does it: OTC appearing after the station means the
-    train is heading into the city."""
+    calling at `station`, in one direction. Direction is inferred by whether
+    OTC appears after the station: if so, the train is heading into the city."""
     from google.transit import gtfs_realtime_pb2
 
     url = f"https://gtfspublic.metrarr.com/gtfs/public/tripupdates?api_token={METRA_KEY}"
@@ -628,11 +622,11 @@ def check_metra_delays():
 
     location = fetch_presence_location()
     if location == "home":
-        # Next trip is outbound: Clybourn -> Arlington Heights.
+        # Next trip is outbound: Irving Park -> Arlington Heights.
         scheduled, station, inbound, heading = (
-            get_scheduled_clybourn_deps(), "CLYBOURN", False, "from Clybourn")
+            get_scheduled_irvingpk_deps(), "IRVINGPK", False, "from Irving Park")
     elif location == "work":
-        # Next trip is inbound: Arlington Heights -> Clybourn.
+        # Next trip is inbound: Arlington Heights -> Irving Park.
         scheduled, station, inbound, heading = (
             get_scheduled_arlington_deps(), "ARLINGTNHT", True, "from Arlington Heights")
     else:
@@ -804,7 +798,7 @@ def log_commute_datapoint(commute):
     try:
         metra = {}
         try:
-            with open(os.path.join(DATA_DIR, "metra_clybourn.json")) as f:
+            with open(os.path.join(DATA_DIR, "metra_irvingpk.json")) as f:
                 metra = json.load(f)
         except Exception:
             pass
@@ -1125,23 +1119,32 @@ KIND_OVERRIDES = {"golfing": "golf"}
 
 def fetch_latest_activity():
     if not FITNESS_URL or not FITNESS_TOKEN:
-        return {"log": None, "location": None, "error": "Missing fitness-logger config", "updatedAt": now_iso()}
+        return {"activities": [], "error": "Missing fitness-logger config", "updatedAt": now_iso()}
 
     try:
         payload = http_get_json(
             f"{FITNESS_URL}/api/latest-activity",
             headers={"Authorization": f"Bearer {FITNESS_TOKEN}"},
         )
-        log = payload.get("log")
-        if not log:
-            return {"log": None, "location": None, "updatedAt": now_iso()}
+        # "activities" is per-household-member (colin/lucas); fall back to the
+        # older single log/location shape for compatibility.
+        raw = payload.get("activities")
+        if raw is None:
+            raw = [{"who": "colin", "log": payload.get("log"), "location": payload.get("location")}]
 
-        slug = log.get("slug") or ""
-        log["_kind"] = KIND_OVERRIDES.get(slug, slug or "unknown")
-        return {"log": log, "location": payload.get("location"), "updatedAt": now_iso()}
+        activities = []
+        for entry in raw:
+            log = entry.get("log")
+            if not log:
+                continue
+            slug = log.get("slug") or ""
+            log["_kind"] = KIND_OVERRIDES.get(slug, slug or "unknown")
+            activities.append({"who": entry.get("who", "colin"), "log": log, "location": entry.get("location")})
+
+        return {"activities": activities, "updatedAt": now_iso()}
 
     except Exception as e:
-        return {"log": None, "location": None, "error": str(e), "updatedAt": now_iso()}
+        return {"activities": [], "error": str(e), "updatedAt": now_iso()}
 
 
 # ===== Poll loops =====
@@ -1184,12 +1187,22 @@ def poll_transit():
         bus_w = empty
     write_json_atomic(os.path.join(DATA_DIR, "bus_west.json"), bus_w)
 
-    # Metra: needed if explicitly on, or auto-swap could show it during weekday AM
-    if layout.get("metraClybourn", False) or auto_swap:
-        metra = fetch_metra_clybourn()
+    # Metra: needed if explicitly on, or auto-swap could show it during weekday AM.
+    # Irving Park is always fetched when needed (the drive-vs-Metra commute card
+    # tracks the real boarding station regardless of which station the
+    # "Metra UP-NW Outbound" tile is displaying). Clybourn is only fetched
+    # when it's the tile's selected station.
+    metra_needed = layout.get("metraClybourn", False) or auto_swap
+    metra_station = layout.get("metraStation", "IRVINGPK")
+
+    metra_irvingpk = fetch_metra_outbound("IRVINGPK") if metra_needed else empty
+    write_json_atomic(os.path.join(DATA_DIR, "metra_irvingpk.json"), metra_irvingpk)
+
+    if metra_needed and metra_station == "CLYBOURN":
+        metra_clybourn = fetch_metra_outbound("CLYBOURN")
     else:
-        metra = empty
-    write_json_atomic(os.path.join(DATA_DIR, "metra_clybourn.json"), metra)
+        metra_clybourn = empty
+    write_json_atomic(os.path.join(DATA_DIR, "metra_clybourn.json"), metra_clybourn)
 
     if layout.get("nowPlaying", True):
         try:

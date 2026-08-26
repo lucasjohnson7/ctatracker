@@ -12,6 +12,7 @@ const DEFAULTS = {
   trainLoop: true,
   trainKimball: true,
   metraClybourn: false,
+  metraStation: 'IRVINGPK',
   busEast: true,
   busWest: true,
   nowPlaying: true,
