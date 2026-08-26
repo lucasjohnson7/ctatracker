@@ -1117,8 +1117,11 @@ async function loadLatestActivity() {
       const emoji = kind === 'running' ? '🏃' : '🥾';
       const miles = data.distance ? (data.distance / 1609.34).toFixed(2) : null;
       const elev  = data.total_elevation_gain != null ? Math.round(data.total_elevation_gain) : null;
-      const dur   = data.elapsed_time != null ? actFmtDuration(data.elapsed_time) : null;
-      const pace  = data.elapsed_time && data.distance ? actFmtPace(data.elapsed_time, data.distance / 1609.34) : null;
+      // Moving time excludes stopped time (lights, breaks); prefer it over
+      // elapsed_time for both the displayed duration and pace.
+      const moving = data.moving_time ?? data.elapsed_time;
+      const dur   = moving != null ? actFmtDuration(moving) : null;
+      const pace  = moving && data.distance ? actFmtPace(moving, data.distance / 1609.34) : null;
       title = `${emoji} ${data.name || (kind === 'running' ? 'Run' : 'Hike')}`;
       if (miles) stats.push(['Distance',  `${miles} mi`]);
       if (elev)  stats.push(['Elevation', `${elev} ft`]);
