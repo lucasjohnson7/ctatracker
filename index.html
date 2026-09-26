@@ -1215,12 +1215,14 @@ async function loadLatestActivity() {
 
     if (showMap && typeof L !== 'undefined') {
       const isNight = document.documentElement.classList.contains('night');
+      // Esri gray canvases: keyless, same look as CARTO's no-labels styles
+      // (CARTO now serves an "API KEY REQUIRED" placeholder tile for keyless use).
       const tileUrl = isNight
-        ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+        : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}';
 
       const map = L.map('activityMap', { zoomControl: false, attributionControl: false });
-      L.tileLayer(tileUrl, { maxZoom: 18 }).addTo(map);
+      L.tileLayer(tileUrl, { maxZoom: 18, maxNativeZoom: 16 }).addTo(map);
       activityMapInstance = map;
 
       if (polylineStr) {
