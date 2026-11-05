@@ -31,7 +31,12 @@ CTA_TRAIN_KEY   = os.environ.get("CTA_TRAIN_KEY", "")
 CTA_BUS_KEY     = os.environ.get("CTA_BUS_KEY", "")
 METRA_KEY       = os.environ.get("METRA_KEY", "")
 GOOGLE_API_KEY  = os.environ.get("GOOGLE_API_KEY", "")
-FITNESS_URL   = os.environ.get("FITNESS_URL", "http://100.98.221.29:3002")
+# Default goes via the Docker bridge gateway (172.17.0.1), not the home
+# server's Tailscale IP: Tailscale Serve routes by Host header, and this
+# container's bare-IP requests don't match it (always 404). fitness-logger
+# publishes 3002 on the docker0 gateway specifically for same-host access
+# like this.
+FITNESS_URL   = os.environ.get("FITNESS_URL", "http://172.17.0.1:3002")
 FITNESS_TOKEN = os.environ.get("FITNESS_TOKEN", "")
 
 # The poller runs on the home server; the wall Pi's express serves data/ as
