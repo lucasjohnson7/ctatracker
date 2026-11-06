@@ -36,17 +36,17 @@
   </div>
   <div id="metraClybournBody" class="arrival-group">Loading…</div>
 
-  <div class="marquee" id="busEastMarquee">
-    <span class="station-label">#77 Eastbound → Lake Shore</span>
-    <img src="./images/bus.png" class="runner" id="busEastRun" />
+  <div class="marquee" id="redHowardMarquee">
+    <span class="station-label">Red Line → Howard</span>
+    <img src="./images/train.png" class="runner" id="redHowardRun" />
   </div>
-  <div id="busEastBody" class="arrival-group">Loading…</div>
+  <div id="redHowardBody" class="arrival-group">Loading…</div>
 
-  <div class="marquee" id="busWestMarquee">
-    <span class="station-label">#77 Westbound → Cumberland</span>
-    <img src="./images/bus.png" class="runner" id="busWestRun" />
+  <div class="marquee" id="red95thMarquee">
+    <span class="station-label">Red Line → 95th/Dan Ryan</span>
+    <img src="./images/train.png" class="runner" id="red95thRun" />
   </div>
-  <div id="busWestBody" class="arrival-group">Loading…</div>
+  <div id="red95thBody" class="arrival-group">Loading…</div>
 
 </section>
 
@@ -256,8 +256,8 @@ const MODULES = [
   { key: 'trainLoop',     label: 'Brown Line → Loop',      ids: ['trainLoopMarquee',      'trainLoopBody'] },
   { key: 'trainKimball',  label: 'Brown Line → Kimball',   ids: ['trainKimballMarquee',   'trainKimballBody'] },
   { key: 'metraClybourn', label: 'Metra UP-NW Outbound',  ids: ['metraClybournMarquee',  'metraClybournBody'] },
-  { key: 'busEast',       label: '#77 Eastbound',          ids: ['busEastMarquee',        'busEastBody'] },
-  { key: 'busWest',       label: '#77 Westbound',          ids: ['busWestMarquee',        'busWestBody'] },
+  { key: 'redHoward',     label: 'Red Line → Howard',      ids: ['redHowardMarquee',      'redHowardBody'] },
+  { key: 'red95th',       label: 'Red Line → 95th/Dan Ryan', ids: ['red95thMarquee',       'red95thBody'] },
   { key: 'nowPlaying',    label: 'Now Playing',            ids: ['nowplaying'] },
   { key: 'weather',       label: 'Weather',                ids: ['weather'] },
   { key: 'sports',         label: 'Sports',          ids: ['sportsCard'] },
@@ -271,7 +271,7 @@ const LAYOUT_DEFAULTS = {
   theme: 'auto',
   autoKimballMetra: true,
   trainLoop: true, trainKimball: true, metraClybourn: false, metraStation: 'IRVINGPK',
-  busEast: true, busWest: true,
+  redHoward: true, red95th: true,
   nowPlaying: true, weather: true, sports: true, latestActivity: true, commute: true, autoCommute: true,
   bikeToMetra: 18, bikeFromMetra: 16, mpg: 28, gasPrice: 3.50, tollCost: 0,
   metraFare: 5.50, metraDayPass: 10.00, metraTicketMode: 'roundtrip',
@@ -577,8 +577,8 @@ async function fetchJSON(url){
   return r.json();
 }
 
-/* Train + Bus rendering */
-function renderList(rows, target, runner, maxRows){
+/* Train rendering */
+function renderList(rows, target, runner, maxRows, routeLabel){
   const el=document.querySelector(target);
   if(!rows.length){
     el.innerHTML=`<div class="row empty">No predictions</div>`;
@@ -586,6 +586,7 @@ function renderList(rows, target, runner, maxRows){
     return;
   }
   const limit = typeof maxRows === 'number' ? maxRows : 4;
+  const route = routeLabel || 'Brown Line';
   let anyDue=false;
   el.innerHTML=rows.slice(0,limit).map(x=>{
     const mins=Math.max(0,Math.round((new Date(x.arrT)-new Date())/60000));
@@ -593,7 +594,7 @@ function renderList(rows, target, runner, maxRows){
     const eta=mins<=1?"DUE":`${mins} min`;
     return `<div class="row ${classify(mins)}">
       <div class="meta">
-        <div class="route">Brown Line #${x.rn}</div>
+        <div class="route">${route} #${x.rn}</div>
         <div class="dest">${x.destNm}</div>
       </div>
       <div class="eta">${eta}</div>
@@ -665,43 +666,20 @@ async function loadMetra(){
   }
 }
 
-function renderBus(rows, target, runner, maxRows){
-  const el=document.querySelector(target);
-  if(!rows.length){
-    el.innerHTML=`<div class="row empty">No predictions</div>`;
-    controlRunner(document.querySelector(runner), false);
-    return;
-  }
-  const limit = typeof maxRows === 'number' ? maxRows : 4;
-  let anyDue=false;
-  el.innerHTML=rows.slice(0,limit).map(x=>{
-    const mins=x.prdctdn==="DUE"?0:parseInt(x.prdctdn,10);
-    if(mins<=1) anyDue=true;
-    const eta=mins<=1?"DUE":`${mins} min`;
-    return `<div class="row ${classify(mins)} bus-row">
-      <div class="meta">
-        <div class="route">#77 Vehicle ${x.vid}</div>
-        <div class="dest">${x.des}</div>
-      </div>
-      <div class="eta">${eta}</div>
-    </div>`;
-  }).join("");
-  controlRunner(document.querySelector(runner), anyDue);
-}
-
-async function loadBuses(){
+async function loadBelmontRed(){
   try{
-    // NEW: read from local JSON written by poller.py
-    const [east,west]=await Promise.all([
-      fetchJSON("./data/bus_east.json"),
-      fetchJSON("./data/bus_west.json")
-    ]);
-    renderBus(east.rows||[], "#busEastBody", "#busEastRun", 3);
-    renderBus(west.rows||[], "#busWestBody", "#busWestRun", 3);
+    // NEW: read from local JSON written by poller.py (already filtered to
+    // the Red Line; Belmont is a shared Red/Brown/Purple stop).
+    const data = await fetchJSON("./data/train_belmont.json");
+    const rows = data.rows || [];
+    const howardRows = rows.filter(x=>x.destNm==="Howard");
+    const southRows  = rows.filter(x=>x.destNm==="95th/Dan Ryan");
+    renderList(howardRows, "#redHowardBody", "#redHowardRun", 3, "Red Line");
+    renderList(southRows,  "#red95thBody",   "#red95thRun",   3, "Red Line");
   }catch(e){
-    console.error("bus load error", e);
-    document.querySelector("#busEastBody").innerHTML="<div class='row empty'>Error</div>";
-    document.querySelector("#busWestBody").innerHTML="<div class='row empty'>Error</div>";
+    console.error("belmont red line load error", e);
+    document.querySelector("#redHowardBody").innerHTML="<div class='row empty'>Error</div>";
+    document.querySelector("#red95thBody").innerHTML="<div class='row empty'>Error</div>";
   }
 }
 
@@ -1251,7 +1229,7 @@ setTimeout(()=> location.reload(), 30 * 60 * 1000);
 /* cadence */
 async function refresh(){
   await loadLayout();
-  await Promise.all([loadTrains(), loadBuses(), loadMetra(), loadCommute()]);
+  await Promise.all([loadTrains(), loadBelmontRed(), loadMetra(), loadCommute()]);
   await loadBikeWeather();
   loadLatestActivity();
   setStamp();

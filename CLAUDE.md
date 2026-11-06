@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A wall-mounted transit dashboard ("CTA Wall — Southport") showing CTA Brown Line arrivals, Metra UP-NW, the #77 bus, a drive-vs-Metra commute card, Chicago sports scores, Sonos now-playing, weather, a photo slideshow, and pull-up/push-up counters. It runs across **two machines**:
+A wall-mounted transit dashboard ("CTA Wall — Southport") showing CTA Brown Line arrivals, Red Line arrivals at Belmont (both directions), Metra UP-NW, a drive-vs-Metra commute card, Chicago sports scores, Sonos now-playing, weather, a photo slideshow, and pull-up/push-up counters. It runs across **two machines**:
 
 - **Wall Pi** (`colinrecker@192.168.12.191`, Tailscale `100.126.101.86`, armv7l/Node 18): runs `server.js` via systemd (`ctatracker.service`, port 3000) and a Chromium kiosk pointed at `http://127.0.0.1:3000`. Repo checkout at `~/Projects/ctatracker`.
 - **Home server** (`colinrecker@100.98.221.29`, x86_64): runs `poller.py` as a Docker container (`ctatracker-poller-1`, compose file in repo root, `Dockerfile.poller`) from `~/home-server/ctatracker`.

@@ -173,39 +173,13 @@ def fetch_cta_trains(mapid):
 
         cleaned = [{
             "rn": x.get("rn"),
+            "rt": x.get("rt"),
             "destNm": x.get("destNm"),
             "stpDe": x.get("stpDe"),
             "arrT": x.get("arrT"),
         } for x in rows]
 
         return {"rows": cleaned, "error": None, "updatedAt": now_iso()}
-
-    except Exception as e:
-        return {"rows": [], "error": str(e), "updatedAt": now_iso()}
-
-
-def fetch_cta_bus_predictions(stpid, rt="77", top="6"):
-    if not CTA_BUS_KEY:
-        return {"rows": [], "error": "Missing CTA_BUS_KEY", "updatedAt": now_iso()}
-
-    url = (
-        "https://www.ctabustracker.com/bustime/api/v3/getpredictions"
-        f"?format=json&key={CTA_BUS_KEY}&rt={rt}&stpid={stpid}&top={top}"
-    )
-
-    try:
-        j = http_get_json(url, headers={"User-Agent": "ctatracker-local/1.0"})
-        root = j.get("bustime-response") or j.get("bustime_response") or {}
-
-        api_err = None
-        if root.get("error"):
-            api_err = (root["error"][0] or {}).get("msg", "CTA bus error")
-
-        return {
-            "rows": root.get("prd") or [],
-            "error": api_err,
-            "updatedAt": now_iso(),
-        }
 
     except Exception as e:
         return {"rows": [], "error": str(e), "updatedAt": now_iso()}
@@ -1186,17 +1160,15 @@ def poll_transit():
         train = empty
     write_json_atomic(os.path.join(DATA_DIR, "train.json"), train)
 
-    if layout.get("busEast", True):
-        bus_e = fetch_cta_bus_predictions("17833", rt="77", top="6")
+    # Red Line at Belmont (a shared Red/Brown/Purple stop — filter to Red
+    # only). Both directions come back in one fetch, like Southport above;
+    # index.html splits them by destNm ("Howard" vs "95th/Dan Ryan").
+    if layout.get("redHoward", True) or layout.get("red95th", True):
+        belmont = fetch_cta_trains("41320")
+        belmont = {**belmont, "rows": [r for r in belmont.get("rows", []) if r.get("rt") == "Red"]}
     else:
-        bus_e = empty
-    write_json_atomic(os.path.join(DATA_DIR, "bus_east.json"), bus_e)
-
-    if layout.get("busWest", True):
-        bus_w = fetch_cta_bus_predictions("14920", rt="77", top="6")
-    else:
-        bus_w = empty
-    write_json_atomic(os.path.join(DATA_DIR, "bus_west.json"), bus_w)
+        belmont = empty
+    write_json_atomic(os.path.join(DATA_DIR, "train_belmont.json"), belmont)
 
     # Metra: needed if explicitly on, or auto-swap could show it during weekday AM.
     # Irving Park is always fetched when needed (the drive-vs-Metra commute card
