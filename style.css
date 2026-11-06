@@ -15,8 +15,8 @@
   /* fixed (do NOT change at night) */
   --brown-bg:#522e18;
   --brown-text:#f5f1e8;
-  --bus-bg:#2e2e2e;
-  --bus-text:#f5f1e8;
+  --red-bg:#c60c30;
+  --red-text:#ffffff;
 
   --soon:#d29f00;
   --due:#d84242;
@@ -150,10 +150,10 @@ header{
   background:var(--brown-bg);
   color:var(--brown-text);
 }
-#busEastBody .row,
-#busWestBody .row{
-  background:var(--bus-bg);
-  color:var(--bus-text);
+#redHowardBody .row,
+#red95thBody .row{
+  background:var(--red-bg);
+  color:var(--red-text);
 }
 #metraClybournBody .row{
   background:#b89200;
@@ -185,8 +185,8 @@ header{
   font-weight:900;
   letter-spacing:.5px;
 }
-#busEastBody .dest,
-#busWestBody .dest{
+#redHowardBody .dest,
+#red95thBody .dest{
   font-size:32px;
   font-weight:800;
 }
