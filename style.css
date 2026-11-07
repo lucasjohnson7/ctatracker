@@ -15,7 +15,7 @@
   /* fixed (do NOT change at night) */
   --brown-bg:#522e18;
   --brown-text:#f5f1e8;
-  --red-bg:#c60c30;
+  --red-bg:rgba(225, 57, 62, 1);
   --red-text:#ffffff;
 
   --soon:#d29f00;
@@ -187,8 +187,10 @@ header{
 }
 #redHowardBody .dest,
 #red95thBody .dest{
-  font-size:32px;
-  font-weight:800;
+  font-size:36px;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:.5px;
 }
 
 /* ===========================
